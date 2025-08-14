@@ -1,5 +1,2 @@
-### GET request to example server
-GET https://examples.http-client.intellij.net/get
-    ?generated-in=IntelliJ IDEA
-
-###
+GET https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=60.10&lon=9.58
+User-Agent: GolfVejrApp/1.0
