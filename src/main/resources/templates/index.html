@@ -13,7 +13,10 @@
     </div>
 
     <div class=content-container>
-    <p>Ja</p>
+
+    <p>Temperatur:</p>
+        <p th:text="${forecast.getProperties.getTimeSeries().getFirst().getData().getInstant().getDetails().getAirTemperature()}" ></p>
+
     </div>
 
 </div>
