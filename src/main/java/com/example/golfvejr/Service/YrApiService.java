@@ -1,5 +1,6 @@
 package com.example.golfvejr.Service;
 
+import com.example.golfvejr.Model.CompleteForecast;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
@@ -19,7 +20,7 @@ public class YrApiService {
     }
 
     // Parametre er latitude og longitude koordinater
-    public String getForecast(double lat, double lon) {
+    public CompleteForecast getForecast(double lat, double lon) {
         String url = String.format("https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=%s&lon=%s", lat, lon);
 
         HttpHeaders headers = new HttpHeaders();
@@ -29,11 +30,11 @@ public class YrApiService {
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(
+        ResponseEntity<CompleteForecast> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
-                String.class
+                CompleteForecast.class
         );
 
         return response.getBody();
