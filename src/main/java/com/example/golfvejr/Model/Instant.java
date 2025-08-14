@@ -9,5 +9,5 @@ import lombok.Setter;
 public class Instant {
 
     @JsonProperty("details")
-    Details details;
+    private Details details;
 }

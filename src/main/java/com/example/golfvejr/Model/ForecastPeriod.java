@@ -9,8 +9,8 @@ import lombok.Setter;
 public class ForecastPeriod {
 
     @JsonProperty("summary")
-    Summary summary;
+    private Summary summary;
 
     @JsonProperty("details")
-    Details details;
+    private Details details;
 }

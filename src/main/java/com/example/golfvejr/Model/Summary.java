@@ -9,5 +9,5 @@ import lombok.Setter;
 public class Summary {
 
     @JsonProperty("symbol_code")
-    String symbolCode;
+    private String symbolCode;
 }

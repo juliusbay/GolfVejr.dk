@@ -9,14 +9,14 @@ import lombok.Setter;
 public class ForecastData {
 
     @JsonProperty("instant")
-    Instant instant;
+    private Instant instant;
 
     @JsonProperty("next_12_hours")
-    ForecastPeriod next12Hours;
+    private ForecastPeriod next12Hours;
 
     @JsonProperty("next_6_hours")
-    ForecastPeriod next6Hours;
+    private ForecastPeriod next6Hours;
 
     @JsonProperty("next_1_hours")
-    ForecastPeriod next1Hours;
+    private ForecastPeriod next1Hours;
 }
