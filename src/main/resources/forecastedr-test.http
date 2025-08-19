@@ -1,2 +1,2 @@
-GET https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=60.10&lon=9.58
+GET https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=55.67594&lon=12.56553
 User-Agent: GolfVejrApp/1.0

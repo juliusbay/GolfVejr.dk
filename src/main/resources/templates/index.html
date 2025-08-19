@@ -12,10 +12,25 @@
         <h1> Er det golfvejr i dag? </h1>
     </div>
 
-    <div class=content-container>
+    <div class=content-container th:each="forecastByDay: ${forecastNext10Days}">
 
-    <p>Temperatur:</p>
-        <p th:text="${forecast.getProperties.getTimeSeries().getFirst().getData().getInstant().getDetails().getAirTemperature()}" ></p>
+        <table>
+        <tr>
+            <th>Tidspunkt </th>
+            <th> Temperatur</th>
+            <th> Vind </th>
+            <th> Regn </th>
+        </tr>
+            <tr th:each="entry : ${forecastByDay}">
+                <td th:text="${entry.time}"></td>
+                <td th:text="${entry.data.instant.details.airTemperature}"></td>
+                <td th:text="${entry.data.instant.details.windSpeed}"></td>
+                <td th:text="${entry.data.instant.details.precipitationAmount}"></td>
+
+
+            </tr>
+
+        </table>
 
     </div>
 
