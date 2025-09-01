@@ -1,42 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>Vælg en klub</title>
 </head>
 <body>
 
 <div class="main-container">
 
-    <div class="title-container">
-        <h1> Er det golfvejr i dag? </h1>
-    </div>
+    <h1> Vælg hvilken klub du vil se vejrudsigten for </h1>
+    <form method="post" action="/">
+        <select name="clubId">
+            <option value="" disabled selected>Vælg en klub</option>
 
-    <div class=content-container th:each="forecastByDay: ${forecastNext10Days}">
-
-        <p> Dato: </p>
-        <p th:text="${#temporals.format(forecastByDay.getFirst().time, 'dd-MM-yyyy')}"> </p>
-        <table>
-        <tr>
-            <th>Tidspunkt </th>
-            <th> Temperatur</th>
-            <th> Vind </th>
-            <th> Regn </th>
-        </tr>
-            <tr th:each="entry : ${forecastByDay}">
-                <td th:text="${#temporals.format(entry.time, 'HH:mm')}"></td>
-                <td th:text="${entry.data.instant.details.airTemperature}"></td>
-                <td th:text="${entry.data.instant.details.windSpeed}"></td>
-                <td th:text="${entry.data.instant.details.precipitationAmount}"></td>
-
-
-            </tr>
-
-        </table>
-
-    </div>
+            <th:block th:each="club : ${golfClubs}">
+                <option th:value="${club.id}"
+                        th:text="${club.name}"></option>
+            </th:block>
+        </select>
+        <button type="submit">Se vejr</button>
+    </form>
 
 </div>
+
+
 
 </body>
 </html>

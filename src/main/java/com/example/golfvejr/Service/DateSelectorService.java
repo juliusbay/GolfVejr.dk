@@ -30,6 +30,20 @@ public class DateSelectorService {
         return timeSeriesForDate;
     }
 
+    // Mangler variable til at modtage koordinater
+    public List<TimeSeries> getForecastForDateAndLocation(LocalDateTime date, double lat, double lon){
+        List<TimeSeries> completeForecast = yrApiService.getForecast(lat, lon).getProperties().getTimeSeries();
+        List<TimeSeries> timeSeriesForDate = new ArrayList<>();
+
+        for (TimeSeries t : completeForecast) {
+            if (t.getTime().toLocalDate().equals(date.toLocalDate())) {
+                timeSeriesForDate.add(t);
+            }
+        }
+
+        return timeSeriesForDate;
+    }
+
     public TimeSeries getForecastForHour(LocalDateTime dateAndTime){
         List<TimeSeries> timeSeriesForDate = getForecastForDate(dateAndTime);
         TimeSeries timeEntry = new TimeSeries();
