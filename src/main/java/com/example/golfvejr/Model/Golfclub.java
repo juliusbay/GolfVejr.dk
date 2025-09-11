@@ -3,7 +3,7 @@ package com.example.golfvejr.Model;
 import jakarta.persistence.*;
 
 @Entity
-public class GolfClub {
+public class Golfclub {
     @Id
     @GeneratedValue (strategy = GenerationType.IDENTITY)
 
@@ -12,13 +12,20 @@ public class GolfClub {
     private double latitude;
     private double longitude;
 
-    public GolfClub(String name, double latitude, double longitude){
+    public Golfclub(String name, double latitude, double longitude){
         this.name = name;
         this.latitude = latitude;
         this.longitude = longitude;
     }
 
-    public GolfClub(){}
+    public Golfclub(Long id, String name, double latitude, double longitude) {
+        this.id = id;
+        this.name = name;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public Golfclub(){}
 
     public Long getId() {
         return id;

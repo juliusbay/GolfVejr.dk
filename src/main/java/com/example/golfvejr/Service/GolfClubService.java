@@ -1,9 +1,8 @@
 package com.example.golfvejr.Service;
 
-import com.example.golfvejr.Model.GolfClub;
+import com.example.golfvejr.Model.Golfclub;
 import com.example.golfvejr.Repository.GolfClubRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,19 +13,19 @@ public class GolfClubService {
 
     private final GolfClubRepository golfClubRepository;
 
-    public List<GolfClub> getAllClubs(){
+    public List<Golfclub> getAllClubs(){
         return golfClubRepository.findAll();
     }
 
-    public GolfClub getClubById(Long id){
+    public Golfclub getClubById(Long id){
         return golfClubRepository.getReferenceById(id);
     }
 
-    public GolfClub saveClub(GolfClub golfClub){
+    public Golfclub saveClub(Golfclub golfClub){
         return golfClubRepository.save(golfClub);
     }
 
-    public void deleteClub(GolfClub golfClub){
+    public void deleteClub(Golfclub golfClub){
         golfClubRepository.delete(golfClub);
     }
 }

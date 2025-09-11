@@ -1,14 +1,14 @@
 package com.example.golfvejr.Controller;
 
-import com.example.golfvejr.Model.GolfClub;
+import com.example.golfvejr.Model.Golfclub;
 import com.example.golfvejr.Model.TimeSeries;
 import com.example.golfvejr.Service.DateSelectorService;
 import com.example.golfvejr.Service.GolfClubService;
-import com.example.golfvejr.Service.YrApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -25,7 +25,7 @@ public class ForecastController {
 
     @GetMapping("/")
     public String showFrontPage(Model model){
-        List<GolfClub> golfClubs = golfClubService.getAllClubs();
+        List<Golfclub> golfClubs = golfClubService.getAllClubs();
         model.addAttribute("golfClubs", golfClubs);
         return "index";
     }
@@ -36,8 +36,8 @@ public class ForecastController {
     }
 
     @GetMapping("/forecast/{id}")
-    public String getForeCastForLocation(@RequestParam Long id, Model model) {
-        GolfClub club = golfClubService.getClubById(id);
+    public String getForeCastForLocation(Model model, @PathVariable Long id) {
+        Golfclub club = golfClubService.getClubById(id);
         LocalDateTime now = LocalDateTime.now();
 
         List<List<TimeSeries>> forecastNext10Days = new ArrayList<>();
@@ -59,7 +59,7 @@ public class ForecastController {
     public String getForecastCopenhagen(Model model) {
         List<List<TimeSeries>> forecastNext10Days = new ArrayList<>();
         LocalDateTime dateAndTime = LocalDateTime.now();
-        List<GolfClub> golfClubs = golfClubService.getAllClubs();
+        List<Golfclub> golfClubs = golfClubService.getAllClubs();
 
         for (int i = 0; i < 9; i++){
             List<TimeSeries> oneDayForecast = dateSelectorService.getForecastForDate(dateAndTime.plusDays(i));
