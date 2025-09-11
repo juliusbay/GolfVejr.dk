@@ -2,15 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>$Title$</title>
+  <title>Vejrudsigt</title>
+    <link rel="stylesheet" th:href="@{/styling/forecast-styling.css}">
 </head>
 <body>
 
 <div class="main-container">
-
     <div class="title-container">
         <h1> Er det golfvejr i dag? </h1>
+        <pth ></pth>
     </div>
+
+    <!--
+    Kan bruges hvis der skal implementeres funktionalitet til at vælge dato
+        <form method="post" action="/">
+            <select name="date">
+                <option value="" disabled selected>Vælg dato</option>
+
+                <th:block th:each="date : ${dates}">
+                    <option th:value="${date}"
+                            th:text="${#temporals.format(date, 'dd-MM-yyyy')}"></option>
+                </th:block>
+            </select>
+            <button type="submit">Vælg dato</button>
+        </form>
+    -->
 
     <div class=content-container th:each="forecastByDay: ${forecastNext10Days}">
 
@@ -24,12 +40,10 @@
             <th> Regn </th>
         </tr>
             <tr th:each="entry : ${forecastByDay}">
-                <td th:text="${#temporals.format(entry.time, 'HH:mm')}"></td>
-                <td th:text="${entry.data.instant.details.airTemperature}"></td>
-                <td th:text="${entry.data.instant.details.windSpeed}"></td>
-                <td th:text="${entry.data.instant.details.precipitationAmount}"></td>
-
-
+                <td data-label="Tidspunkt" th:text="${#temporals.format(entry.time, 'HH:mm')}"></td>
+                <td data-label="Temperatur" th:text="${entry.data.instant.details.airTemperature}"></td>
+                <td data-label="Vind" th:text="${entry.data.instant.details.windSpeed}"></td>
+                <td data-label="Regn" th:text="${entry.data.instant.details.precipitationAmount}"></td>
             </tr>
 
         </table>

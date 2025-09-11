@@ -1,5 +1,6 @@
 package com.example.golfvejr.Service;
 
+import com.example.golfvejr.Model.Details;
 import com.example.golfvejr.Model.TimeSeries;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,17 +45,17 @@ public class DateSelectorService {
         return timeSeriesForDate;
     }
 
-    public TimeSeries getForecastForHour(LocalDateTime dateAndTime){
-        List<TimeSeries> timeSeriesForDate = getForecastForDate(dateAndTime);
-        TimeSeries timeEntry = new TimeSeries();
+    public String golfingConditions(Details hour){
 
-        for (TimeSeries t : timeSeriesForDate) {
-            if (t.getTime().getHour() == dateAndTime.getHour()) {
-                timeEntry = t;
-            }
+        if (hour.getAirTemperature()<5){
+            return "For koldt";
         }
 
-        return timeEntry;
+        if (hour.getWindSpeed()>12){
+            return "Blæser for meget";
+        }
+
+        return "Grøn";
     }
 
 }
