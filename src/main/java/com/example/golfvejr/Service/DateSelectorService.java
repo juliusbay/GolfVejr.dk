@@ -47,12 +47,22 @@ public class DateSelectorService {
 
     public String golfingConditions(Details hour){
 
-        if (hour.getAirTemperature()<5){
-            return "For koldt";
+        if (hour.getPrecipitationAmount() >= 1.5){
+            return "Står ned i stænger";
         }
 
-        if (hour.getWindSpeed()>12){
-            return "Blæser for meget";
+        if (hour.getAirTemperature() < 5){
+            return "Super koldt";
+        }
+
+        if (hour.getWindSpeed() >= 12){
+            return "Blæser en halv pelikan";
+        }
+
+        if (hour.getPrecipitationAmount() < 1 && hour.getPrecipitationAmount() > 0 ||
+                hour.getWindSpeed() < 12 && hour.getWindSpeed() > 6 ||
+                hour.getAirTemperature() >= 5 &&  hour.getAirTemperature() < 15){
+            return "Gul";
         }
 
         return "Grøn";
