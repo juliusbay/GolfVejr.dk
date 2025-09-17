@@ -1,5 +1,6 @@
 package com.example.golfvejr.Controller;
 
+import com.example.golfvejr.Model.Details;
 import com.example.golfvejr.Model.Golfclub;
 import com.example.golfvejr.Model.TimeSeries;
 import com.example.golfvejr.Service.DateSelectorService;
@@ -46,6 +47,11 @@ public class ForecastController {
         for (int i = 0; i < 9; i++) {
             List<TimeSeries> oneDay = dateSelectorService
                     .getForecastForDateAndLocation(now.plusDays(i), club.getLatitude(), club.getLongitude());
+            for (var hourEntry : oneDay) {
+                Details forecastForHour = hourEntry.getData().getInstant().getDetails();
+                forecastForHour.setStatus(dateSelectorService.golfingConditions(forecastForHour));
+            }
+
             forecastNext10Days.add(oneDay);
             dates.add(now.plusDays(i));
         }

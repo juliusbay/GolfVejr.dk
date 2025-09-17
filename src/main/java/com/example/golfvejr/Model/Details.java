@@ -29,5 +29,6 @@ public class Details {
     @JsonProperty("precipitation_amount")
     private double precipitationAmount;
 
+    private String status;
 
 }

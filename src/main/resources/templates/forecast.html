@@ -10,7 +10,8 @@
 <div class="main-container">
     <div class="title-container">
         <h1> Er det golfvejr i dag? </h1>
-        <pth ></pth>
+
+        <p th:text="${club.getName()}"> </p>
     </div>
 
     <!--
@@ -38,12 +39,14 @@
             <th> Temperatur</th>
             <th> Vind </th>
             <th> Regn </th>
+            <th> Status </th>
         </tr>
             <tr th:each="entry : ${forecastByDay}">
                 <td data-label="Tidspunkt" th:text="${#temporals.format(entry.time, 'HH:mm')}"></td>
                 <td data-label="Temperatur" th:text="${entry.data.instant.details.airTemperature}"></td>
                 <td data-label="Vind" th:text="${entry.data.instant.details.windSpeed}"></td>
                 <td data-label="Regn" th:text="${entry.data.instant.details.precipitationAmount}"></td>
+                <td data-label="Status" th:text="${entry.data.instant.details.status}"></td>
             </tr>
 
         </table>
