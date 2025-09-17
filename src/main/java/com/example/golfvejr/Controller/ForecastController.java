@@ -41,7 +41,6 @@ public class ForecastController {
     public String getForecastForLocation(Model model, @PathVariable Long id, @RequestParam(value = "date", required = false) LocalDateTime date) {
         Golfclub club = golfClubService.getClubById(id);
         LocalDateTime now = LocalDateTime.now();
-        List<LocalDateTime> dates = new ArrayList<>();
 
         List<List<TimeSeries>> forecastNext10Days = new ArrayList<>();
         for (int i = 0; i < 9; i++) {
@@ -53,7 +52,6 @@ public class ForecastController {
             }
 
             forecastNext10Days.add(oneDay);
-            dates.add(now.plusDays(i));
         }
 
         /*
@@ -63,7 +61,6 @@ public class ForecastController {
 
         model.addAttribute("club", club);
         model.addAttribute("forecastNext10Days", forecastNext10Days);
-        model.addAttribute("dates", dates);
         return "forecast";
     }
 

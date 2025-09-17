@@ -32,6 +32,7 @@
     <div class=content-container th:each="forecastByDay: ${forecastNext10Days}">
 
         <p> Dato: </p>
+        <p th:text="${forecastByDay.getFirst().time.dayOfWeek}"> </p>
         <p th:text="${#temporals.format(forecastByDay.getFirst().time, 'dd-MM-yyyy')}"> </p>
         <table>
         <tr>
