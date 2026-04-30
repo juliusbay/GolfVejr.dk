@@ -55,25 +55,35 @@ document.addEventListener('mousemove', e => {
   tipEl.style.top  = Math.min(y, window.innerHeight - 120) + 'px';
 });
 
-// ── Score ring (conic-gradient) ──────────────────────────────────────────────
+// ── Score arc (SVG gauge) ────────────────────────────────────────────────────
 
 function scoreColor(cls) {
-  return { good: '#16a34a', warn: '#ca8a04', bad: '#dc2626' }[cls] || '#16a34a';
+  return { good: '#16a34a', warn: '#d97706', bad: '#dc2626' }[cls] || '#16a34a';
 }
 
 function renderScoreRing(score, status, tooltip) {
   const c     = statusCls(status);
   const color = scoreColor(c);
   const pct   = Math.min(Math.max(score, 0), 100);
-  const bg    = `conic-gradient(${color} ${pct}%, #e5e7eb 0)`;
+  const r     = 46, cx = 56, cy = 56;
+  const circ  = 2 * Math.PI * r;
+  const arc   = circ * 0.75;
+  const fill  = arc * pct / 100;
+  const rot   = `rotate(-225 ${cx} ${cy})`;
   return `
     <div class="score-ring-wrap">
-      <div class="score-ring" style="background:${bg}">
-        <div class="score-ring-inner">
-          <span class="score-ring-num">${score}</span>
-          <span class="score-ring-den">/100</span>
-        </div>
-      </div>
+      <svg class="score-arc" viewBox="0 0 112 112" width="96" height="96" aria-hidden="true">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="9"
+          stroke-dasharray="${arc.toFixed(2)} ${(circ - arc).toFixed(2)}"
+          stroke-linecap="round" transform="${rot}"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="9"
+          stroke-dasharray="${fill.toFixed(2)} ${(circ - fill).toFixed(2)}"
+          stroke-linecap="round" transform="${rot}"/>
+        <text x="${cx}" y="${cy - 5}" text-anchor="middle" dominant-baseline="middle"
+          font-family="'DM Mono',monospace" font-size="22" font-weight="700" fill="${color}">${score}</text>
+        <text x="${cx}" y="${cy + 13}" text-anchor="middle"
+          font-family="'DM Sans',sans-serif" font-size="10" fill="#9ca3af">/100</text>
+      </svg>
       <div class="score-ring-label" data-tip="${escapeHtml(tooltip)}">Golfscore ⓘ</div>
     </div>`;
 }
@@ -260,7 +270,7 @@ function renderDailySections(forecast) {
           <td>${h.temperature.toFixed(1)}</td>
           <td>${windCell}</td>
           <td>${h.precipitation.toFixed(1)}</td>
-          <td><span class="score-tip" data-tip="${escapeHtml(hTip)}">${h.score}</span></td>
+          <td><span class="score-tip" data-tip="${escapeHtml(hTip)}">${h.score}<span class="score-mini-bar"><span style="width:${h.score}%;background:${scoreColor(statusCls(h.status))}"></span></span></span></td>
           <td>${renderBadge(h.status)}</td>
         </tr>`;
     }).join('');
