@@ -1,5 +1,6 @@
 package com.example.golfvejr.Service;
 
+import com.example.golfvejr.Exception.ClubNotFoundException;
 import com.example.golfvejr.Model.Golfclub;
 import com.example.golfvejr.Repository.GolfClubRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,11 +15,12 @@ public class GolfClubService {
     private final GolfClubRepository golfClubRepository;
 
     public List<Golfclub> getAllClubs(){
-        return golfClubRepository.findAll();
+        return golfClubRepository.findAllByOrderByNameAsc();
     }
 
     public Golfclub getClubById(Long id){
-        return golfClubRepository.getReferenceById(id);
+        return golfClubRepository.findById(id)
+                .orElseThrow(() -> new ClubNotFoundException(id));
     }
 
     public Golfclub saveClub(Golfclub golfClub){

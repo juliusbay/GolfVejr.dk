@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GolfVejr.dk</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <h1>&#9971; GolfVejr.dk</h1>
+    <p class="subtitle">Er det golfvejr?</p>
+  </div>
+</header>
+
+<main id="app">
+
+  <div id="view-selector" class="view">
+    <div class="card">
+      <h2>Vælg din golfklub</h2>
+      <p class="hint">Vi analyserer vejret og fortæller dig om det er golfvejr</p>
+      <div class="search-row">
+        <div class="search-wrap">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="club-search" placeholder="Søg efter golfklub..." autocomplete="off" spellcheck="false">
+          <div id="club-dropdown" class="club-dropdown hidden"></div>
+        </div>
+        <button id="btn-go" disabled>Se vejrudsigt &rarr;</button>
+      </div>
+    </div>
+
+    <details class="info-card">
+      <summary>Sådan vurderes golfvejr</summary>
+      <div class="info-content">
+        <div class="criteria-grid">
+          <div class="criterion">
+            <span class="crit-icon">&#127783;</span>
+            <div>
+              <strong>Nedbør</strong>
+              <p>Under 0,1 mm/t er tørt. Over 0,5 mm/t frarådes.</p>
+            </div>
+          </div>
+          <div class="criterion">
+            <span class="crit-icon">&#127788;</span>
+            <div>
+              <strong>Vind</strong>
+              <p>Under 5 m/s er ideelt. Over 12 m/s frarådes.</p>
+            </div>
+          </div>
+          <div class="criterion">
+            <span class="crit-icon">&#127777;</span>
+            <div>
+              <strong>Temperatur</strong>
+              <p>15–24°C er ideelt. Under 5°C frarådes.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="scoring-weights">
+          <p class="scoring-desc">Vind og regn vægter mest — temperatur er sekundær, da man kan klæde sig på.</p>
+          <div class="weight-rows">
+            <div class="weight-row">
+              <span class="weight-label">&#127783; Regn</span>
+              <div class="weight-bar"><div class="weight-fill" style="width: 40%"></div></div>
+              <span class="weight-pct">40%</span>
+            </div>
+            <div class="weight-row">
+              <span class="weight-label">&#127788; Vind</span>
+              <div class="weight-bar"><div class="weight-fill" style="width: 40%"></div></div>
+              <span class="weight-pct">40%</span>
+            </div>
+            <div class="weight-row">
+              <span class="weight-label">&#127777; Temperatur</span>
+              <div class="weight-bar"><div class="weight-fill" style="width: 20%"></div></div>
+              <span class="weight-pct">20%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div id="view-forecast" class="view hidden">
+    <div class="back-bar">
+      <button id="btn-back">&larr; Vælg anden klub</button>
+      <span id="club-name-display"></span>
+    </div>
+
+    <div class="dashboard-grid">
+      <div id="today-card" class="card today-card"></div>
+
+      <div class="card sidebar-card">
+        <h3>Bedste golfdage</h3>
+        <div id="best-days-list"></div>
+      </div>
+    </div>
+
+    <div class="section-label">Detaljeret vejrudsigt</div>
+    <div id="daily-sections"></div>
+  </div>
+
+  <div id="view-loading" class="view hidden">
+    <div class="spinner-wrap">
+      <div class="spinner"></div>
+      <p>Henter vejrdata...</p>
+    </div>
+  </div>
+
+  <div id="view-error" class="view hidden">
+    <div class="card error-card">
+      <h2>Noget gik galt</h2>
+      <p id="error-message"></p>
+      <button id="btn-retry">Prøv igen</button>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>Vejrdata fra <a href="https://api.met.no" target="_blank" rel="noopener">MET Norway</a></p>
+</footer>
+
+<script src="/js/app.js?v=4"></script>
+</body>
+</html>

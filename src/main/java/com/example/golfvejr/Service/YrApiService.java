@@ -1,7 +1,7 @@
 package com.example.golfvejr.Service;
 
+import com.example.golfvejr.Exception.WeatherApiException;
 import com.example.golfvejr.Model.CompleteForecast;
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,24 +19,27 @@ public class YrApiService {
         this.restTemplate = builder.build();
     }
 
-    // Parametre er latitude og longitude koordinater
     public CompleteForecast getForecast(double lat, double lon) {
-        String url = String.format("https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=%s&lon=%s", lat, lon);
+        String url = String.format(
+                "https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=%s&lon=%s", lat, lon);
 
         HttpHeaders headers = new HttpHeaders();
-
-        // Header kræver ikke API, men der skal være en identifier/user-agent
-        headers.set("User-Agent", "GolfVejrApp/1.0 ");
+        headers.set("User-Agent", "GolfVejrApp/1.0");
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<CompleteForecast> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                CompleteForecast.class
-        );
+        try {
+            ResponseEntity<CompleteForecast> response = restTemplate.exchange(
+                    url, HttpMethod.GET, entity, CompleteForecast.class);
 
-        return response.getBody();
+            if (response.getBody() == null) {
+                throw new WeatherApiException("Vejr-API returnerede tomt svar");
+            }
+            return response.getBody();
+        } catch (WeatherApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new WeatherApiException("Kunne ikke hente vejrdata fra API", e);
+        }
     }
 }

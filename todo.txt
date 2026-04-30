@@ -1,8 +1,1 @@
-Features:
-
-Best tee time of the day
-Alle golfklubber som valgmulighed
-Mindre frontend med bedre overblik
-Sidste tee time
-
-Best weather within a 10 mile radius (scoring system?)
+Færdiggør Claude arbejde + vindstød + regn

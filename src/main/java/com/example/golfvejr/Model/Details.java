@@ -26,6 +26,9 @@ public class Details {
     @JsonProperty("wind_speed")
     private double windSpeed;
 
+    @JsonProperty("wind_speed_of_gust")
+    private Double windSpeedOfGust;
+
     @JsonProperty("precipitation_amount")
     private double precipitationAmount;
 
