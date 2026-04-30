@@ -54,6 +54,7 @@ button:hover {
 }
 
 .content-container {
+    overflow-x: auto; 
     margin-bottom: 2rem;
     padding: 1rem;
     border: 1px solid #e0e0e0;

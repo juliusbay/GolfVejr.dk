@@ -77,16 +77,35 @@ public class ForecastService {
                 .mapToInt(HourlyForecastDTO::score)
                 .average().orElse(0);
 
-        // Strip per-hour temperature labels; replace with one representative label below.
-        List<String> goodFactors = new ArrayList<>(topN(assessment.stream()
-                .flatMap(h -> h.goodFactors().stream())
-                .filter(f -> !isTemperatureFactor(f))
-                .collect(Collectors.toList()), 2));
+        List<String> goodFactors = new ArrayList<>();
+        List<String> badFactors  = new ArrayList<>();
 
-        List<String> badFactors = new ArrayList<>(topN(assessment.stream()
-                .flatMap(h -> h.badFactors().stream())
-                .filter(f -> !isTemperatureFactor(f))
-                .collect(Collectors.toList()), 3));
+        // Worst-case values across daytime hours — one label per category.
+        double maxWind   = assessment.stream().mapToDouble(HourlyForecastDTO::windSpeed).max().orElse(0);
+        double maxGust   = assessment.stream().mapToDouble(HourlyForecastDTO::windGust).max().orElse(0);
+        double maxPrecip = assessment.stream().mapToDouble(HourlyForecastDTO::precipitation).max().orElse(0);
+
+        if (maxWind <= 4) {
+            goodFactors.add(fmt("Svag vind (%.1f m/s)", maxWind));
+        } else if (maxWind <= 7) {
+            goodFactors.add(fmt("Let brise (%.1f m/s)", maxWind));
+        } else if (maxWind <= 10) {
+            badFactors.add(fmt("Moderat vind (%.1f m/s)", maxWind));
+        } else {
+            badFactors.add(fmt("Kraftig vind (%.1f m/s)", maxWind));
+        }
+
+        if (maxGust > 10) {
+            badFactors.add(fmt("Vindstød op til %.1f m/s", maxGust));
+        }
+
+        if (maxPrecip <= 0.1) {
+            goodFactors.add("Tørre forhold");
+        } else if (maxPrecip <= 0.5) {
+            goodFactors.add(fmt("Let dryp (%.1f mm/t)", maxPrecip));
+        } else {
+            badFactors.add(fmt("Regn forventet (%.1f mm/t)", maxPrecip));
+        }
 
         // Single temperature label based on the warmest daytime hour (07:00–21:00).
         double maxTemp = windowDTOs.isEmpty()
@@ -114,7 +133,10 @@ public class ForecastService {
     // the best block is below the minimum threshold (conditions not worth recommending).
     private String findBestWindow(List<Integer> hours, List<HourlyForecastDTO> dtos) {
         int n = hours.size();
-        if (n < 2) return null;
+        if (n < 8) return null;
+
+        int span = hours.get(n - 1) - hours.get(0);
+        if (span < 6) return null;
 
         int windowSize = Math.min(4, n);
         int bestStart  = 0;
@@ -134,10 +156,6 @@ public class ForecastService {
         return String.format("%02d:00–%02d:00", startHour, endHour);
     }
 
-    private static boolean isTemperatureFactor(String factor) {
-        return factor.contains("°C");
-    }
-
     private static String buildTemperatureLabel(double temp, List<String> badFactors) {
         if (temp >= 18 && badFactors.isEmpty()) return fmt("Perfekt temperatur (%.0f°C)", temp);
         if (temp >= 18) return fmt("God temperatur (%.0f°C)", temp);
@@ -151,22 +169,4 @@ public class ForecastService {
         return String.format(java.util.Locale.ROOT, pattern, args);
     }
 
-    // Returns the top N most frequently occurring factor strings, deduplicating by base
-    // label (strips parenthetical values like "(8°C)") to avoid near-identical entries
-    // like "Kølige temperaturer (8°C)" and "Kølige temperaturer (5°C)" both appearing.
-    private List<String> topN(List<String> items, int n) {
-        // Strip parenthetical suffix to get the base label used as grouping key
-        Map<String, String> baseToFirst = new LinkedHashMap<>();
-        Map<String, Long> baseCounts = new LinkedHashMap<>();
-        for (String item : items) {
-            String base = item.replaceAll("\\s*\\(.*\\)\\s*$", "").trim();
-            baseToFirst.putIfAbsent(base, item);
-            baseCounts.merge(base, 1L, Long::sum);
-        }
-        return baseCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(n)
-                .map(e -> baseToFirst.get(e.getKey()))
-                .collect(Collectors.toList());
-    }
 }

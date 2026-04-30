@@ -60,9 +60,12 @@ public class GolfAssessmentService {
         double gust  = (gustVal != null) ? gustVal : wind;
 
         double precip = 0.0;
-        if (ts.getData().getNext1Hours() != null
-                && ts.getData().getNext1Hours().getDetails() != null) {
-            precip = ts.getData().getNext1Hours().getDetails().getPrecipitationAmount();
+        var data = ts.getData();
+        if (data.getNext1Hours() != null && data.getNext1Hours().getDetails() != null) {
+            precip = data.getNext1Hours().getDetails().getPrecipitationAmount();
+        } else if (data.getNext6Hours() != null && data.getNext6Hours().getDetails() != null) {
+            // next_6_hours gives a 6-hour total — convert to an hourly rate
+            precip = data.getNext6Hours().getDetails().getPrecipitationAmount() / 6.0;
         }
 
         List<String> good = new ArrayList<>();

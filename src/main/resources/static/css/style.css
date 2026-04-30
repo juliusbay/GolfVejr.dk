@@ -90,6 +90,8 @@ footer a:hover { text-decoration: underline; }
   padding: 1.5rem;
   margin-bottom: 1.25rem;
   border: 1px solid var(--border);
+  width: 100%;
+  min-width: 0; /* prevent grid/flex children from overflowing their track */
 }
 .card h2 { font-size: 1.25rem; margin-bottom: 0.4rem; }
 .card > h3, .card-section-title {
@@ -468,7 +470,7 @@ details.info-card[open] > summary::after { transform: rotate(90deg); }
 .day-factors { margin-bottom: 0.75rem; }
 
 /* ── Collapsible hourly table ── */
-details.day-hours { margin-top: 0.25rem; }
+details.day-hours { margin-top: 0.25rem; width: 100%; }
 details.day-hours > summary {
   display: inline-flex;
   align-items: center;
@@ -493,8 +495,8 @@ details.day-hours[open] > summary::before { transform: rotate(90deg); }
 details.day-hours > summary:hover { color: var(--text); }
 
 /* ── Table ── */
-.table-wrap { overflow-x: auto; margin-top: 0.75rem; }
-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+.table-wrap { width: 100%; min-width: 0; overflow-x: auto; margin-top: 0.75rem; }
+table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.86rem; }
 th {
   text-align: left;
   padding: 0.45rem 0.7rem;
@@ -505,8 +507,9 @@ th {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
-td { padding: 0.38rem 0.7rem; border-bottom: 1px solid var(--border); }
+td { padding: 0.38rem 0.7rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface-2); }
 .score-tip {
