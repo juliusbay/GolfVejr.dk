@@ -10,6 +10,7 @@ const views = {
 function showView(name) {
   Object.values(views).forEach(v => v.classList.add('hidden'));
   views[name].classList.remove('hidden');
+  if (name === 'selector' && map) setTimeout(() => map.invalidateSize(), 50);
 }
 
 // ── Status helpers ──────────────────────────────────────────────────────────
@@ -105,6 +106,57 @@ function renderFactors(good, bad) {
   ];
   if (!tags.length) return '<div class="factor-tags"><span class="factor-tag good">&#9989; Perfekte golfforhold</span></div>';
   return `<div class="factor-tags">${tags.join('')}</div>`;
+}
+
+// ── Denmark map (Leaflet) ────────────────────────────────────────────────────
+
+const MAP_COLORS = { GREEN: '#16a34a', YELLOW: '#d97706', RED: '#dc2626' };
+
+let map = null;
+let mapMarkers = [];
+
+function initMap() {
+  if (typeof L === 'undefined') {
+    console.error('Leaflet failed to load — map disabled');
+    return;
+  }
+  try {
+    map = L.map('denmark-map', { zoomControl: true }).setView([56.2, 10.4], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 18,
+    }).addTo(map);
+  } catch (err) {
+    console.error('Map initialization failed:', err);
+    map = null;
+  }
+}
+
+function loadMapData() {
+  fetch(`${API}/map-data`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      mapMarkers.forEach(m => m.remove());
+      mapMarkers = [];
+      data.forEach(club => {
+        const color = MAP_COLORS[club.status] || '#6b7280';
+        const marker = L.circleMarker([club.lat, club.lon], {
+          radius: 7,
+          fillColor: color,
+          color: '#1f2937',
+          weight: 1.5,
+          opacity: 1,
+          fillOpacity: 0.88,
+        }).addTo(map);
+        marker.bindTooltip(club.name, { permanent: false, direction: 'top', className: 'map-tooltip' });
+        marker.on('click', () => {
+          loadForecast(club.id, club.name);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        mapMarkers.push(marker);
+      });
+    })
+    .catch(() => {}); // Cache may still be empty on first startup — fail silently.
 }
 
 // ── Favourite clubs (localStorage) ───────────────────────────────────────────
@@ -426,5 +478,7 @@ document.getElementById('btn-favorite').addEventListener('click', () => {
   renderFavoritesPanel();
 });
 
+initMap();
+loadMapData();
 loadClubs();
 renderFavoritesPanel();

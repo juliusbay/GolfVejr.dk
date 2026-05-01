@@ -6,7 +6,8 @@
   <title>GolfVejr.dk</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=14">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/css/style.css?v=15">
 </head>
 <body>
 
@@ -34,6 +35,8 @@
         <button id="btn-go" disabled>Se vejrudsigt &rarr;</button>
       </div>
     </div>
+
+    <div id="denmark-map" style="height: 420px; width: 100%; border-radius: 12px; margin-bottom: 1.5rem; z-index: 1;"></div>
 
     <div id="favorites-list-container"></div>
 
@@ -107,6 +110,7 @@
   <p>Vejrdata fra <a href="https://api.met.no" target="_blank" rel="noopener">MET Norway</a></p>
 </footer>
 
-<script src="/js/app.js?v=14"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/js/app.js?v=15"></script>
 </body>
 </html>

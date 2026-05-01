@@ -643,6 +643,19 @@ tr:hover td { background: var(--surface-2); }
   max-width: 100%;
 }
 
+/* ── Map tooltip ── */
+.map-tooltip {
+  background: #1f2937;
+  color: #f9fafb;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.map-tooltip::before { display: none; }
+
 /* ── Floating tooltip ── */
 #tip {
   position: fixed;
