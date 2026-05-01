@@ -33,61 +33,42 @@
       </div>
     </div>
 
-    <details class="info-card">
-      <summary>Sådan vurderes golfvejr</summary>
+    <div id="favorites-list-container"></div>
+
+    <div class="info-card">
       <div class="info-content">
         <div class="criteria-grid">
           <div class="criterion">
             <span class="crit-icon">&#127783;</span>
             <div>
               <strong>Nedbør</strong>
-              <p>Under 0,1 mm/t er tørt. Over 0,5 mm/t frarådes.</p>
+              <p>Under 0,05 mm/t tæller som tørt. Let regn fra 0,05–0,15 mm/t giver en lille straf. Over 0,3 mm/t frarådes og sætter et hårdt loft på scoren uanset vind og temperatur.</p>
             </div>
           </div>
           <div class="criterion">
             <span class="crit-icon">&#127788;</span>
             <div>
               <strong>Vind</strong>
-              <p>Under 5 m/s er ideelt. Over 12 m/s frarådes.</p>
+              <p>Under 4 m/s er ideelt. 4–7 m/s er stadig godt. 7–10 m/s er mærkbart og trækker ned. Over 13 m/s frarådes. Kraftige vindstød straffer yderligere.</p>
             </div>
           </div>
           <div class="criterion">
             <span class="crit-icon">&#127777;</span>
             <div>
               <strong>Temperatur</strong>
-              <p>15–24°C er ideelt. Under 5°C frarådes.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="scoring-weights">
-          <p class="scoring-desc">Vind og regn vægter mest — temperatur er sekundær, da man kan klæde sig på.</p>
-          <div class="weight-rows">
-            <div class="weight-row">
-              <span class="weight-label">&#127783; Regn</span>
-              <div class="weight-bar"><div class="weight-fill" style="width: 40%"></div></div>
-              <span class="weight-pct">40%</span>
-            </div>
-            <div class="weight-row">
-              <span class="weight-label">&#127788; Vind</span>
-              <div class="weight-bar"><div class="weight-fill" style="width: 40%"></div></div>
-              <span class="weight-pct">40%</span>
-            </div>
-            <div class="weight-row">
-              <span class="weight-label">&#127777; Temperatur</span>
-              <div class="weight-bar"><div class="weight-fill" style="width: 20%"></div></div>
-              <span class="weight-pct">20%</span>
+              <p>18–24°C er ideelt. 14–18°C er fint. Under 10°C begynder det at trække ned, og under 6°C frarådes. Varme dage gør vinden mere behagelig.</p>
             </div>
           </div>
         </div>
       </div>
-    </details>
+    </div>
   </div>
 
   <div id="view-forecast" class="view hidden">
     <div class="back-bar">
       <button id="btn-back">&larr; Vælg anden klub</button>
       <span id="club-name-display"></span>
+      <button id="btn-favorite" aria-label="Gem som favorit">&#9734;</button>
     </div>
 
     <div class="dashboard-grid">
@@ -124,6 +105,6 @@
   <p>Vejrdata fra <a href="https://api.met.no" target="_blank" rel="noopener">MET Norway</a></p>
 </footer>
 
-<script src="/js/app.js?v=10"></script>
+<script src="/js/app.js?v=13"></script>
 </body>
 </html>

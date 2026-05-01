@@ -145,6 +145,9 @@ footer a:hover { text-decoration: underline; }
   box-shadow: var(--shadow);
 }
 .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.62rem 0.9rem;
   cursor: pointer;
   font-size: 0.93rem;
@@ -152,7 +155,70 @@ footer a:hover { text-decoration: underline; }
 }
 .dropdown-item:last-child { border-bottom: none; }
 .dropdown-item:hover { background: var(--good-bg); color: var(--good-text); }
+.dropdown-item-name { flex: 1; }
 .dropdown-empty { padding: 0.62rem 0.9rem; color: var(--text-muted); font-size: 0.88rem; }
+
+.dropdown-star {
+  background: transparent;
+  border: none;
+  color: var(--text-subtle);
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0.1rem 0.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.12s, transform 0.12s;
+}
+.dropdown-star:hover:not(:disabled) {
+  background: transparent;
+  color: #d97706;
+  transform: scale(1.25);
+}
+.dropdown-star.active { color: #d97706; }
+
+/* ── Favourites panel ── */
+#favorites-list-container { margin-bottom: 1rem; }
+.favorites-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+.favorites-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.fav-club-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--good-bg);
+  color: var(--good-text);
+  border: 1px solid var(--good-border);
+  border-radius: 100px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fav-club-btn:hover:not(:disabled) {
+  background: var(--good-border);
+  transform: none;
+}
+.fav-club-star {
+  font-size: 0.95rem;
+  line-height: 1;
+  color: #d97706;
+  opacity: 0.7;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.12s, transform 0.12s;
+}
+.fav-club-star:hover { opacity: 1; transform: scale(1.2); }
 
 /* ── Buttons ── */
 button {
@@ -169,7 +235,17 @@ button {
 button:hover:not(:disabled) { background: var(--brand-hover); transform: translateY(-1px); }
 button:disabled { background: var(--text-subtle); cursor: not-allowed; transform: none; }
 
-/* ── Info card (collapsible <details>) ── */
+/* ── Info card ── */
+.info-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+.info-card .info-content { padding: 0; }
+
 details.info-card {
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -238,6 +314,25 @@ details.info-card[open] > summary::after { transform: rotate(90deg); }
 }
 .back-bar button:hover { background: var(--brand-light); transform: none; }
 .back-bar span { font-weight: 600; font-size: 0.95rem; color: var(--text-muted); }
+
+/* ── Favourite star ── */
+#btn-favorite {
+  background: transparent;
+  border: none;
+  color: var(--text-subtle);
+  font-size: 1.45rem;
+  line-height: 1;
+  padding: 0.1rem 0.25rem;
+  margin-left: auto;
+  cursor: pointer;
+  transition: color 0.15s, transform 0.12s;
+}
+#btn-favorite:hover:not(:disabled) {
+  background: transparent;
+  color: #d97706;
+  transform: scale(1.2);
+}
+#btn-favorite.active { color: #d97706; }
 
 /* ── Status badges ── */
 .status-badge {

@@ -107,11 +107,91 @@ function renderFactors(good, bad) {
   return `<div class="factor-tags">${tags.join('')}</div>`;
 }
 
+// ── Favourite clubs (localStorage) ───────────────────────────────────────────
+
+const FAV_KEY = 'favoriteClubs';
+
+// Migrate old single-favourite key to the new array format
+(function migrateFavorites() {
+  const old = localStorage.getItem('favoriteClub');
+  if (!old) return;
+  try {
+    const parsed = JSON.parse(old);
+    if (parsed && parsed.clubId) {
+      const existing = getFavorites();
+      if (!existing.some(f => f.id === parsed.clubId)) {
+        existing.push({ id: parsed.clubId, name: parsed.clubName });
+        localStorage.setItem(FAV_KEY, JSON.stringify(existing));
+      }
+    }
+  } catch {}
+  localStorage.removeItem('favoriteClub');
+})();
+
+function getFavorites() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch { return []; }
+}
+
+function isFavorite(id) {
+  return getFavorites().some(f => f.id === String(id));
+}
+
+function toggleFavorite(id, name) {
+  const favs = getFavorites();
+  const idx  = favs.findIndex(f => f.id === String(id));
+  if (idx >= 0) favs.splice(idx, 1); else favs.push({ id: String(id), name });
+  localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+}
+
+function updateStarButton(clubId) {
+  const btn    = document.getElementById('btn-favorite');
+  const active = isFavorite(clubId);
+  btn.textContent = active ? '★' : '☆';
+  btn.classList.toggle('active', active);
+  btn.title = active ? 'Fjern fra favoritter' : 'Gem som favorit';
+}
+
+function renderFavoritesPanel() {
+  const container = document.getElementById('favorites-list-container');
+  const favs = getFavorites();
+  if (!favs.length) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = `
+    <p class="favorites-header">Dine favoritter:</p>
+    <div class="favorites-list">
+      ${favs.map(f => `
+        <button class="fav-club-btn" data-id="${escapeHtml(f.id)}" data-name="${escapeHtml(f.name)}">
+          <span class="fav-club-name">${escapeHtml(f.name)}</span>
+          <span class="fav-club-star" data-id="${escapeHtml(f.id)}" data-name="${escapeHtml(f.name)}">&#9733;</span>
+        </button>`).join('')}
+    </div>`;
+
+  container.querySelectorAll('.fav-club-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const star = e.target.closest('.fav-club-star');
+      if (star) {
+        toggleFavorite(star.dataset.id, star.dataset.name);
+        renderFavoritesPanel();
+        const dropdown = document.getElementById('club-dropdown');
+        if (!dropdown.classList.contains('hidden')) {
+          renderDropdown(document.getElementById('club-search').value, dropdown, document.getElementById('btn-go'));
+        }
+        return;
+      }
+      loadForecast(btn.dataset.id, btn.dataset.name);
+    });
+  });
+}
+
 // ── Club selector ────────────────────────────────────────────────────────────
 
 let allClubs = [];
 let selectedClubId   = null;
 let selectedClubName = null;
+let currentClubId    = null;
+let currentClubName  = null;
 
 async function loadClubs() {
   const input    = document.getElementById('club-search');
@@ -155,12 +235,18 @@ function renderDropdown(query, dropdown, btn) {
     return;
   }
 
-  dropdown.innerHTML = matches
-    .map(c => `<div class="dropdown-item" data-id="${c.id}" data-name="${escapeHtml(c.name)}">${escapeHtml(c.name)}</div>`)
-    .join('');
+  dropdown.innerHTML = matches.map(c => {
+    const isFav = isFavorite(c.id);
+    const name  = escapeHtml(c.name);
+    return `<div class="dropdown-item" data-id="${c.id}" data-name="${name}">
+      <span class="dropdown-item-name">${name}</span>
+      <button class="dropdown-star${isFav ? ' active' : ''}" data-id="${c.id}" data-name="${name}" tabindex="-1">${isFav ? '&#9733;' : '&#9734;'}</button>
+    </div>`;
+  }).join('');
 
   dropdown.querySelectorAll('.dropdown-item').forEach(item => {
     item.addEventListener('mousedown', e => {
+      if (e.target.closest('.dropdown-star')) return;
       e.preventDefault();
       selectedClubId   = item.dataset.id;
       selectedClubName = item.dataset.name;
@@ -170,12 +256,26 @@ function renderDropdown(query, dropdown, btn) {
     });
   });
 
+  dropdown.querySelectorAll('.dropdown-star').forEach(star => {
+    star.addEventListener('mousedown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id   = star.dataset.id;
+      const name = star.dataset.name;
+      toggleFavorite(id, name);
+      renderDropdown(document.getElementById('club-search').value, dropdown, btn);
+      renderFavoritesPanel();
+    });
+  });
+
   dropdown.classList.remove('hidden');
 }
 
 // ── Forecast loader ──────────────────────────────────────────────────────────
 
 async function loadForecast(clubId, clubName) {
+  currentClubId   = String(clubId);
+  currentClubName = clubName;
   showView('loading');
   try {
     const [forecast, bestDays] = await Promise.all([
@@ -193,6 +293,7 @@ async function loadForecast(clubId, clubName) {
     renderTodayCard(forecast[0]);
     renderBestDays(bestDays);
     renderDailySections(forecast);
+    updateStarButton(clubId);
     showView('forecast');
   } catch {
     showError('Kunne ikke hente vejrdata. Prøv igen om lidt.');
@@ -315,4 +416,11 @@ function showError(msg) {
 document.getElementById('btn-back').addEventListener('click',  () => showView('selector'));
 document.getElementById('btn-retry').addEventListener('click', () => showView('selector'));
 
+document.getElementById('btn-favorite').addEventListener('click', () => {
+  toggleFavorite(currentClubId, currentClubName);
+  updateStarButton(currentClubId);
+  renderFavoritesPanel();
+});
+
 loadClubs();
+renderFavoritesPanel();
