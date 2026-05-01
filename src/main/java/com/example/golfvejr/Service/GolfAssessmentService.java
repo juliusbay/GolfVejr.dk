@@ -16,10 +16,9 @@ public class GolfAssessmentService {
     private static final ZoneId COPENHAGEN_TZ = ZoneId.of("Europe/Copenhagen");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
-    // --- Score weights (must sum to 100) ---
-    private static final int WEIGHT_TEMP   = 35;
-    private static final int WEIGHT_WIND   = 35;
-    private static final int WEIGHT_PRECIP = 30;
+    // --- Score weights — base range is 0–70 (normalized to 0–100 after rain penalty) ---
+    private static final int WEIGHT_TEMP = 35;
+    private static final int WEIGHT_WIND = 35;
 
     // --- Temperature thresholds (°C) ---
     private static final double TEMP_OPTIMAL_LOW  = 18.0;
@@ -39,8 +38,10 @@ public class GolfAssessmentService {
     private static final double GUST_STRONG   = 14.0;
 
     // --- Precipitation thresholds (mm/h) ---
-    private static final double PRECIP_TRACE      = 0.1;
-    private static final double PRECIP_ACCEPTABLE = 0.5;
+    private static final double PRECIP_DRY      = 0.05;
+    private static final double PRECIP_LIGHT    = 0.15;
+    private static final double PRECIP_MODERATE = 0.30;
+    private static final double PRECIP_CAP      = 0.30; // hard cap threshold (known rain only)
 
     // --- Status cutoffs ---
     private static final int STATUS_GREEN  = 70;
@@ -59,13 +60,18 @@ public class GolfAssessmentService {
         Double gustVal = instant.getWindSpeedOfGust();
         double gust  = (gustVal != null) ? gustVal : wind;
 
-        double precip = 0.0;
+        double precipitation;      // mm/hour — used for scoring and stored in DTO
+        boolean isSixHour = false;
         var data = ts.getData();
+
         if (data.getNext1Hours() != null && data.getNext1Hours().getDetails() != null) {
-            precip = data.getNext1Hours().getDetails().getPrecipitationAmount();
+            precipitation = data.getNext1Hours().getDetails().getPrecipitationAmount();
         } else if (data.getNext6Hours() != null && data.getNext6Hours().getDetails() != null) {
-            // next_6_hours gives a 6-hour total — convert to an hourly rate
-            precip = data.getNext6Hours().getDetails().getPrecipitationAmount() / 6.0;
+            // Divide by 3 (not 6) for a worst-case hourly estimate from the 6h window.
+            precipitation = data.getNext6Hours().getDetails().getPrecipitationAmount() / 3.0;
+            isSixHour     = true;
+        } else {
+            precipitation = -1.0;          // no data — treat as uncertain rain
         }
 
         List<String> good = new ArrayList<>();
@@ -75,13 +81,14 @@ public class GolfAssessmentService {
         int windScore   = scoreWind(wind, good, bad);
         windScore       = applyGustPenalty(windScore, gust, bad);
         windScore       = applyTemperatureWindModifier(windScore, temp);
-        int precipScore = scorePrecipitation(precip, good, bad);
 
-        int score = tempScore + windScore + precipScore;
+        int baseScore   = tempScore + windScore;               // max = WEIGHT_TEMP + WEIGHT_WIND = 70
+        int rainPenalty = calculateRainPenalty(precipitation, bad);
+        int score       = Math.max(0, baseScore - rainPenalty);
 
-        // Hard rule: rain above drizzle level is always RED regardless of other conditions.
-        if (precip > PRECIP_ACCEPTABLE) {
-            score = Math.min(score, 35);
+        // Hard cap: only applies to known heavy rain — not when precipitation is unknown (-1).
+        if (precipitation >= 0 && precipitation > PRECIP_CAP) {
+            score = Math.min(score, 25);
         }
 
         // Soft penalty after 20:00 — still playable but slightly depressed score.
@@ -89,11 +96,23 @@ public class GolfAssessmentService {
             score = Math.max(0, score - EVENING_PENALTY);
         }
 
-        String status  = deriveStatus(score);
-        String summary = deriveSummary(score, bad);
-        String time    = zdt.format(TIME_FORMATTER);
+        // Normalize from 0–70 base range to 0–100.
+        int normalizedScore = (int) Math.round((score / 70.0) * 100);
 
-        return new HourlyForecastDTO(time, temp, wind, gust, precip, status, score, summary, good, bad);
+        String status  = deriveStatus(normalizedScore);
+        String summary = deriveSummary(normalizedScore, bad);
+
+        // 6h entries show the covered window, e.g. "14:00–20:00".
+        String time;
+        if (isSixHour) {
+            int startH = zdt.getHour();
+            int endH   = (startH + 6) % 24;
+            time = String.format("%02d:00–%02d:00", startH, endH);
+        } else {
+            time = zdt.format(TIME_FORMATTER);
+        }
+
+        return new HourlyForecastDTO(time, temp, wind, gust, precipitation, isSixHour, status, normalizedScore, summary, good, bad);
     }
 
     // -- Scoring methods --
@@ -164,17 +183,22 @@ public class GolfAssessmentService {
         return windScore;
     }
 
-    private int scorePrecipitation(double precip, List<String> good, List<String> bad) {
-        if (precip <= PRECIP_TRACE) {
-            good.add("Tørre forhold");
-            return WEIGHT_PRECIP;
+    private int calculateRainPenalty(double precip, List<String> bad) {
+        if (precip < 0) {
+            bad.add("Mulighed for regn");
+            return 15;
         }
-        if (precip <= PRECIP_ACCEPTABLE) {
-            good.add(fmt("Let dryp (%.1f mm/t)", precip));
-            return scale(WEIGHT_PRECIP, 0.60);
+        if (precip <= PRECIP_DRY) return 0;
+        if (precip <= PRECIP_LIGHT) {
+            bad.add(fmt("Let regn (%.1f mm/t)", precip));
+            return 20;
+        }
+        if (precip <= PRECIP_MODERATE) {
+            bad.add(fmt("Regn (%.1f mm/t)", precip));
+            return 35;
         }
         bad.add(fmt("Regn forventet (%.1f mm/t)", precip));
-        return 0;
+        return 50;
     }
 
     // -- Shared helpers --

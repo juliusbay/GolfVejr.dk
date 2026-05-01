@@ -52,6 +52,7 @@ public class ForecastService {
         String dayOfWeek = raw.substring(0, 1).toUpperCase() + raw.substring(1);
 
         List<HourlyForecastDTO> allHours    = new ArrayList<>();
+        List<Integer> allHourNums           = new ArrayList<>();
         List<HourlyForecastDTO> daytimeDTOs = new ArrayList<>();
         List<Integer> daytimeHourNums       = new ArrayList<>();
         List<HourlyForecastDTO> windowDTOs  = new ArrayList<>();
@@ -59,8 +60,9 @@ public class ForecastService {
 
         for (TimeSeries ts : entries) {
             HourlyForecastDTO dto = golfAssessmentService.assess(ts);
-            allHours.add(dto);
             int hour = ts.getTime().withZoneSameInstant(COPENHAGEN_TZ).getHour();
+            allHours.add(dto);
+            allHourNums.add(hour);
             if (hour >= 7 && hour <= 22) {
                 daytimeDTOs.add(dto);
                 daytimeHourNums.add(hour);
@@ -72,39 +74,63 @@ public class ForecastService {
         }
 
         List<HourlyForecastDTO> assessment = daytimeDTOs.isEmpty() ? allHours : daytimeDTOs;
+        List<Integer> hours = daytimeDTOs.isEmpty() ? allHourNums : daytimeHourNums;
 
-        int avgScore = (int) assessment.stream()
-                .mapToInt(HourlyForecastDTO::score)
-                .average().orElse(0);
+        // Time-weighted score: midday hours (10–16) count 1.5×, all others 1×.
+        double total = 0, weightSum = 0;
+        for (int i = 0; i < assessment.size(); i++) {
+            int h = hours.get(i);
+            double w = (h >= 10 && h <= 16) ? 1.5 : 1.0;
+            total     += assessment.get(i).score() * w;
+            weightSum += w;
+        }
+        int avgScore = weightSum > 0 ? (int) Math.round(total / weightSum) : 0;
 
         List<String> goodFactors = new ArrayList<>();
         List<String> badFactors  = new ArrayList<>();
 
-        // Worst-case values across daytime hours — one label per category.
-        double maxWind   = assessment.stream().mapToDouble(HourlyForecastDTO::windSpeed).max().orElse(0);
-        double maxGust   = assessment.stream().mapToDouble(HourlyForecastDTO::windGust).max().orElse(0);
-        double maxPrecip = assessment.stream().mapToDouble(HourlyForecastDTO::precipitation).max().orElse(0);
-
-        if (maxWind <= 4) {
-            goodFactors.add(fmt("Svag vind (%.1f m/s)", maxWind));
-        } else if (maxWind <= 7) {
-            goodFactors.add(fmt("Let brise (%.1f m/s)", maxWind));
-        } else if (maxWind <= 10) {
-            badFactors.add(fmt("Moderat vind (%.1f m/s)", maxWind));
-        } else {
-            badFactors.add(fmt("Kraftig vind (%.1f m/s)", maxWind));
+        // 80th-percentile wind avoids a single spike dominating the day's label.
+        List<Double> sortedWinds = assessment.stream()
+                .map(HourlyForecastDTO::windSpeed)
+                .sorted()
+                .toList();
+        double wind    = sortedWinds.get((int) (sortedWinds.size() * 0.8));
+        double maxGust = assessment.stream().mapToDouble(HourlyForecastDTO::windGust).max().orElse(0);
+        double maxPrecip = -1;
+        boolean maxPrecipIsEstimate = false;
+        for (HourlyForecastDTO h : assessment) {
+            if (h.precipitation() >= 0 && h.precipitation() > maxPrecip) {
+                maxPrecip           = h.precipitation();
+                maxPrecipIsEstimate = h.isSixHour();
+            }
         }
 
-        if (maxGust > 10) {
+        if (wind <= 4) {
+            goodFactors.add(fmt("Svag vind (%.1f m/s)", wind));
+        } else if (wind <= 7) {
+            goodFactors.add(fmt("Let brise (%.1f m/s)", wind));
+        } else if (wind <= 10) {
+            badFactors.add(fmt("Moderat vind (%.1f m/s)", wind));
+        } else {
+            badFactors.add(fmt("Kraftig vind (%.1f m/s)", wind));
+        }
+
+        // Show gust label only when gusts are meaningfully above the typical wind.
+        if (maxGust != wind && maxGust > wind + 2.0) {
             badFactors.add(fmt("Vindstød op til %.1f m/s", maxGust));
         }
 
-        if (maxPrecip <= 0.1) {
-            goodFactors.add("Tørre forhold");
-        } else if (maxPrecip <= 0.5) {
-            goodFactors.add(fmt("Let dryp (%.1f mm/t)", maxPrecip));
+        String approx = maxPrecipIsEstimate ? "ca. " : "";
+        if (maxPrecip < 0) {
+            badFactors.add("Mulighed for regn");
+        } else if (maxPrecip <= 0.05) {
+            // dry — no label
+        } else if (maxPrecip <= 0.15) {
+            badFactors.add(fmt("Let regn (%s%.1f mm/t)", approx, maxPrecip));
+        } else if (maxPrecip <= 0.30) {
+            badFactors.add(fmt("Regn (%s%.1f mm/t)", approx, maxPrecip));
         } else {
-            badFactors.add(fmt("Regn forventet (%.1f mm/t)", maxPrecip));
+            badFactors.add(fmt("Regn forventet (%s%.1f mm/t)", approx, maxPrecip));
         }
 
         // Single temperature label based on the warmest daytime hour (07:00–21:00).

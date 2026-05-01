@@ -269,7 +269,7 @@ function renderDailySections(forecast) {
           <td>${h.time}</td>
           <td>${h.temperature.toFixed(1)}</td>
           <td>${windCell}</td>
-          <td>${h.precipitation.toFixed(1)}</td>
+          <td>${h.precipitation < 0 ? '–' : h.precipitation.toFixed(1)}</td>
           <td><span class="score-tip" data-tip="${escapeHtml(hTip)}">${h.score}<span class="score-mini-bar"><span style="width:${h.score}%;background:${scoreColor(statusCls(h.status))}"></span></span></span></td>
           <td>${renderBadge(h.status)}</td>
         </tr>`;
