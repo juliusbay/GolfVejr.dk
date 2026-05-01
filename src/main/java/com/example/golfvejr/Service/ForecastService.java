@@ -30,7 +30,7 @@ public class ForecastService {
     private final YrApiService yrApiService;
     private final GolfAssessmentService golfAssessmentService;
 
-    public List<DailyGolfAssessmentDTO> getForecastForClub(double lat, double lon) {
+    public List<DailyGolfAssessmentDTO> getForecastForClub(double lat, double lon, String timePref) {
         List<TimeSeries> allEntries = yrApiService.getForecast(lat, lon).getProperties().getTimeSeries();
 
         Map<LocalDate, List<TimeSeries>> byDay = new LinkedHashMap<>();
@@ -44,11 +44,11 @@ public class ForecastService {
 
         return byDay.entrySet().stream()
                 .filter(e -> !e.getValue().isEmpty())
-                .map(e -> buildDailyAssessment(e.getKey(), e.getValue(), lat, lon))
+                .map(e -> buildDailyAssessment(e.getKey(), e.getValue(), lat, lon, timePref))
                 .collect(Collectors.toList());
     }
 
-    private DailyGolfAssessmentDTO buildDailyAssessment(LocalDate date, List<TimeSeries> entries, double lat, double lon) {
+    private DailyGolfAssessmentDTO buildDailyAssessment(LocalDate date, List<TimeSeries> entries, double lat, double lon, String timePref) {
         String dateStr = date.format(DATE_FORMATTER);
         String raw = date.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.of("da"));
         String dayOfWeek = raw.substring(0, 1).toUpperCase() + raw.substring(1);
@@ -78,15 +78,35 @@ public class ForecastService {
         List<HourlyForecastDTO> assessment = daytimeDTOs.isEmpty() ? allHours : daytimeDTOs;
         List<Integer> hours = daytimeDTOs.isEmpty() ? allHourNums : daytimeHourNums;
 
-        // Time-weighted score: midday hours (10–16) count 1.5×, all others 1×.
+        String sunsetTime = calculateSunset(lat, lon, date);
+        int sunsetHour = -1;
+        if (sunsetTime != null) {
+            try { sunsetHour = Integer.parseInt(sunsetTime.split(":")[0]); }
+            catch (NumberFormatException ignored) {}
+        }
+
+        // Preferred time window for scoring.
+        // "all": midday (10–16) counts 1.5×, others 1× (original behavior).
+        // Specific pref: in-window hours 3×, out-of-window 0.25×, post-sunset excluded.
+        int[] prefRange = preferredRange(timePref, sunsetHour);
         double total = 0, weightSum = 0;
         for (int i = 0; i < assessment.size(); i++) {
             int h = hours.get(i);
-            double w = (h >= 10 && h <= 16) ? 1.5 : 1.0;
+            if (sunsetHour >= 0 && h >= sunsetHour) continue;
+            double w;
+            if (isAllDay(timePref)) {
+                w = (h >= 10 && h <= 16) ? 1.5 : 1.0;
+            } else {
+                w = (h >= prefRange[0] && h < prefRange[1]) ? 3.0 : 0.25;
+            }
             total     += assessment.get(i).score() * w;
             weightSum += w;
         }
         int avgScore = weightSum > 0 ? (int) Math.round(total / weightSum) : 0;
+
+        // No daylight hours scored → the day is effectively over.
+        // Mark as "Nat" so the UI can show a neutral night state instead of a scary red zero.
+        boolean isNightOnly = (weightSum == 0 && sunsetHour >= 0);
 
         List<String> goodFactors = new ArrayList<>();
         List<String> badFactors  = new ArrayList<>();
@@ -147,10 +167,38 @@ public class ForecastService {
             badFactors.add(0, tempLabel);
         }
 
-        String overallStatus = GolfAssessmentService.deriveStatus(avgScore);
-        String summary = GolfAssessmentService.deriveSummary(avgScore, badFactors);
-        String bestWindow = findBestWindow(windowHourNums, windowDTOs);
-        String sunsetTime = calculateSunset(lat, lon, date);
+        String overallStatus = isNightOnly ? "Nat" : GolfAssessmentService.deriveStatus(avgScore);
+        String summary       = isNightOnly ? "Solen er gået ned" : GolfAssessmentService.deriveSummary(avgScore, badFactors);
+        // Restrict best-window search to the preferred hours (and always exclude post-sunset).
+        List<HourlyForecastDTO> prefWindowDTOs     = new ArrayList<>();
+        List<Integer>           prefWindowHourNums = new ArrayList<>();
+        for (int i = 0; i < windowDTOs.size(); i++) {
+            int h = windowHourNums.get(i);
+            if (sunsetHour >= 0 && h >= sunsetHour) continue;
+            if (isAllDay(timePref) || (h >= prefRange[0] && h < prefRange[1])) {
+                prefWindowDTOs.add(windowDTOs.get(i));
+                prefWindowHourNums.add(h);
+            }
+        }
+        String bestWindow = findBestWindow(prefWindowHourNums, prefWindowDTOs);
+
+        // Set score=0 for post-sunset hours in the displayed hourly table.
+        // The daily average was already calculated above without these hours.
+        if (sunsetHour >= 0) {
+            List<HourlyForecastDTO> penalized = new ArrayList<>(allHours.size());
+            for (int i = 0; i < allHours.size(); i++) {
+                HourlyForecastDTO dto = allHours.get(i);
+                if (allHourNums.get(i) >= sunsetHour) {
+                    dto = new HourlyForecastDTO(
+                            dto.time(), dto.temperature(), dto.windSpeed(), dto.windGust(),
+                            dto.precipitation(), dto.isSixHour(),
+                            "RED", 0, "Mørkt – ikke golfvejr",
+                            List.of(), List.of(), dto.symbolCode());
+                }
+                penalized.add(dto);
+            }
+            allHours = penalized;
+        }
 
         return new DailyGolfAssessmentDTO(
                 dateStr, dayOfWeek, overallStatus, avgScore,
@@ -162,10 +210,7 @@ public class ForecastService {
     // the best block is below the minimum threshold (conditions not worth recommending).
     private String findBestWindow(List<Integer> hours, List<HourlyForecastDTO> dtos) {
         int n = hours.size();
-        if (n < 8) return null;
-
-        int span = hours.get(n - 1) - hours.get(0);
-        if (span < 6) return null;
+        if (n < 3) return null;
 
         int windowSize = Math.min(4, n);
         int bestStart  = 0;
@@ -183,6 +228,22 @@ public class ForecastService {
         int startHour = hours.get(bestStart);
         int endHour   = hours.get(Math.min(bestStart + windowSize - 1, n - 1)) + 1;
         return String.format("%02d:00–%02d:00", startHour, endHour);
+    }
+
+    private static boolean isAllDay(String timePref) {
+        return timePref == null || timePref.isBlank() || timePref.equalsIgnoreCase("all");
+    }
+
+    // Returns [startHour inclusive, endHour exclusive] for the preferred scoring window.
+    private static int[] preferredRange(String timePref, int sunsetHour) {
+        int effectiveSunset = sunsetHour >= 0 ? sunsetHour : 22;
+        if (timePref == null) return new int[]{7, effectiveSunset};
+        return switch (timePref.toLowerCase()) {
+            case "morgen"      -> new int[]{6, 12};
+            case "eftermiddag" -> new int[]{12, 18};
+            case "aften"       -> new int[]{18, effectiveSunset};
+            default            -> new int[]{7, effectiveSunset};
+        };
     }
 
     private static String buildTemperatureLabel(double temp, List<String> badFactors) {

@@ -49,13 +49,16 @@ public class MapCacheService {
         for (Golfclub club : clubs) {
             try {
                 List<DailyGolfAssessmentDTO> forecast =
-                        forecastService.getForecastForClub(club.getLatitude(), club.getLongitude());
+                        forecastService.getForecastForClub(club.getLatitude(), club.getLongitude(), "all");
                 if (!forecast.isEmpty()) {
                     DailyGolfAssessmentDTO today = forecast.get(0);
+                    // Evening edge case: if today is night-only, show tomorrow's conditions on the map.
+                    DailyGolfAssessmentDTO marker = ("Nat".equals(today.overallStatus()) && forecast.size() > 1)
+                            ? forecast.get(1) : today;
                     result.add(new MapMarkerDTO(
                             club.getId(), club.getName(),
                             club.getLatitude(), club.getLongitude(),
-                            today.overallStatus(), today.score(),
+                            marker.overallStatus(), marker.score(),
                             club.getStreet(), club.getCity(),
                             club.getWebsite(), club.getPhone()));
                 }

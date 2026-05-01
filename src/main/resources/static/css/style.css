@@ -327,6 +327,42 @@ details.info-card[open] > summary::after { transform: rotate(90deg); }
 .back-bar button:hover { background: var(--brand-light); transform: none; }
 .back-bar span { font-weight: 600; font-size: 0.95rem; color: var(--text-muted); }
 
+/* ── Time preference toggle ── */
+.time-pref-toggle {
+  display: flex;
+  gap: 3px;
+  background: var(--brand-light);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 1.25rem;
+  width: fit-content;
+}
+
+.tp-btn {
+  padding: 0.3rem 0.9rem;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-muted);
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+  line-height: 1.4;
+}
+
+.tp-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.tp-btn:hover:not(.active) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.5);
+}
+
 /* ── Favourite star ── */
 #btn-favorite {
   background: transparent;
@@ -362,6 +398,7 @@ details.info-card[open] > summary::after { transform: rotate(90deg); }
 .status-badge.good  { background: var(--good-bg);  color: var(--good-text);  border-color: var(--good-border); }
 .status-badge.warn  { background: var(--warn-bg);  color: var(--warn-text);  border-color: var(--warn-border); }
 .status-badge.bad   { background: var(--bad-bg);   color: var(--bad-text);   border-color: var(--bad-border); }
+.status-badge.night { background: var(--brand-light); color: var(--brand);    border-color: var(--border-med); }
 .status-badge.large { font-size: 0.95rem; padding: 0.4rem 1rem; }
 
 /* ── Today card ── */
@@ -605,6 +642,26 @@ details.day-hours > summary::before {
 }
 details.day-hours[open] > summary::before { transform: rotate(90deg); }
 details.day-hours > summary:hover { color: var(--text); }
+
+/* ── Hourly expand toggle ── */
+.extra-hour.hidden { display: none; }
+.expand-hours-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0 0.1rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  margin-top: 0.35rem;
+  user-select: none;
+  transition: color 0.15s;
+}
+.expand-hours-toggle:hover { color: var(--text); }
+.toggle-chevron { font-size: 0.85rem; line-height: 1; }
 
 /* ── Table ── */
 .table-wrap { width: 100%; min-width: 0; overflow-x: auto; margin-top: 0.75rem; }

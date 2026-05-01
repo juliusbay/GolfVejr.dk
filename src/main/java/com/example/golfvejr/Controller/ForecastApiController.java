@@ -19,15 +19,19 @@ public class ForecastApiController {
     private final GolfClubService golfClubService;
 
     @GetMapping("/{clubId}")
-    public List<DailyGolfAssessmentDTO> getForecast(@PathVariable Long clubId) {
+    public List<DailyGolfAssessmentDTO> getForecast(
+            @PathVariable Long clubId,
+            @RequestParam(defaultValue = "all") String timePref) {
         var club = golfClubService.getClubById(clubId);
-        return forecastService.getForecastForClub(club.getLatitude(), club.getLongitude());
+        return forecastService.getForecastForClub(club.getLatitude(), club.getLongitude(), timePref);
     }
 
     @GetMapping("/{clubId}/best-days")
-    public List<DailyGolfAssessmentDTO> getBestDays(@PathVariable Long clubId) {
+    public List<DailyGolfAssessmentDTO> getBestDays(
+            @PathVariable Long clubId,
+            @RequestParam(defaultValue = "all") String timePref) {
         var club = golfClubService.getClubById(clubId);
-        return forecastService.getForecastForClub(club.getLatitude(), club.getLongitude())
+        return forecastService.getForecastForClub(club.getLatitude(), club.getLongitude(), timePref)
                 .stream()
                 .sorted(Comparator.comparingInt(DailyGolfAssessmentDTO::score).reversed())
                 .limit(7)

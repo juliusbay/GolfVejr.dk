@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="/css/style.css?v=19">
+  <link rel="stylesheet" href="/css/style.css?v=23">
 </head>
 <body>
 
@@ -76,6 +76,13 @@
       <button id="btn-favorite" aria-label="Gem som favorit">&#9734;</button>
     </div>
 
+    <div class="time-pref-toggle" id="time-pref-toggle">
+      <button class="tp-btn active" data-pref="all">Hele dagen</button>
+      <button class="tp-btn" data-pref="morgen">Morgen</button>
+      <button class="tp-btn" data-pref="eftermiddag">Eftermiddag</button>
+      <button class="tp-btn" data-pref="aften">Aften</button>
+    </div>
+
     <div class="dashboard-grid">
       <div id="today-card" class="card today-card"></div>
 
@@ -111,6 +118,6 @@
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/js/app.js?v=19"></script>
+<script src="/js/app.js?v=23"></script>
 </body>
 </html>

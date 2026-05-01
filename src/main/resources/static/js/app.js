@@ -15,9 +15,9 @@ function showView(name) {
 
 // ── Status helpers ──────────────────────────────────────────────────────────
 
-function statusCls(s)  { return { GREEN: 'good', YELLOW: 'warn', RED: 'bad' }[s] || 'bad'; }
-function statusIcon(s) { return { GREEN: '✓', YELLOW: '~', RED: '✕' }[s] || ''; }
-function statusText(s) { return { GREEN: 'Ideelt', YELLOW: 'Spilbart', RED: 'Frarådes' }[s] || s; }
+function statusCls(s)  { return { GREEN: 'good', YELLOW: 'warn', RED: 'bad', Nat: 'night' }[s] || 'bad'; }
+function statusIcon(s) { return { GREEN: '✓', YELLOW: '~', RED: '✕', Nat: '🌙' }[s] || ''; }
+function statusText(s) { return { GREEN: 'Ideelt', YELLOW: 'Spilbart', RED: 'Frarådes', Nat: 'Nat' }[s] || s; }
 
 function renderBadge(status, large) {
   return `<span class="status-badge ${statusCls(status)}${large ? ' large' : ''}">${statusIcon(status)} ${statusText(status)}</span>`;
@@ -59,7 +59,7 @@ document.addEventListener('mousemove', e => {
 // ── Score arc (SVG gauge) ────────────────────────────────────────────────────
 
 function scoreColor(cls) {
-  return { good: '#16a34a', warn: '#d97706', bad: '#dc2626' }[cls] || '#16a34a';
+  return { good: '#16a34a', warn: '#d97706', bad: '#dc2626', night: '#6b7280' }[cls] || '#16a34a';
 }
 
 function renderScoreRing(score, status, tooltip) {
@@ -271,6 +271,7 @@ let selectedClubId   = null;
 let selectedClubName = null;
 let currentClubId    = null;
 let currentClubName  = null;
+let currentTimePref  = 'all';
 
 async function loadClubs() {
   const input    = document.getElementById('club-search');
@@ -358,11 +359,11 @@ async function loadForecast(clubId, clubName) {
   showView('loading');
   try {
     const [forecast, bestDays] = await Promise.all([
-      fetch(`${API}/forecast/${clubId}`).then(r => {
+      fetch(`${API}/forecast/${clubId}?timePref=${currentTimePref}`).then(r => {
         if (!r.ok) throw new Error('Forecast fejl');
         return r.json();
       }),
-      fetch(`${API}/forecast/${clubId}/best-days`).then(r => {
+      fetch(`${API}/forecast/${clubId}/best-days?timePref=${currentTimePref}`).then(r => {
         if (!r.ok) throw new Error('Best-days fejl');
         return r.json();
       }),
@@ -435,16 +436,16 @@ function renderBestDays(days) {
 function weatherEmoji(symbolCode, isNight) {
   if (!symbolCode) return '';
   const base = symbolCode.replace(/_(day|night|polartwilight)$/, '');
-  if (base.includes('thunder'))                    return '⛈️';
+  if (base.includes('thunder'))                    return isNight ? '🌙⛈️' : '⛈️';
   if (base.includes('snow'))                       return '❄️';
   if (base.includes('sleet'))                      return '🌨️';
-  if (base.includes('heavyrain'))                  return '🌧️';
-  if (base.includes('rain') || base === 'drizzle') return '🌦️';
-  if (base === 'fog')                              return '🌫️';
-  if (base === 'cloudy')                           return '☁️';
-  if (base === 'partlycloudy') return isNight ? '☁️'  : '⛅';
-  if (base === 'fair')         return isNight ? '🌙'  : '🌤️';
-  if (base === 'clearsky')     return isNight ? '🌙'  : '☀️';
+  if (base.includes('heavyrain'))                  return isNight ? '🌙🌧️' : '🌧️';
+  if (base.includes('rain') || base === 'drizzle') return isNight ? '🌙🌦️' : '🌦️';
+  if (base === 'fog')                              return isNight ? '🌙🌫️' : '🌫️';
+  if (base === 'cloudy')                           return isNight ? '🌙☁️'  : '☁️';
+  if (base === 'partlycloudy') return isNight ? '🌙⛅' : '⛅';
+  if (base === 'fair')         return isNight ? '🌙'   : '🌤️';
+  if (base === 'clearsky')     return isNight ? '🌙'   : '☀️';
   return '';
 }
 
@@ -457,9 +458,9 @@ function isAfterSunset(timeStr, sunsetTime) {
 
 // ── Hourly table (shared) ─────────────────────────────────────────────────────
 
-function renderHourlyRows(day) {
+function renderHourlyRows(day, teaser = false) {
   const hours = day.hourlyForecasts.filter(h => h.time >= '07:00' && h.time <= '22:00');
-  return hours.map(h => {
+  return hours.map((h, idx) => {
     const hTip = buildTooltip(h.goodFactors, h.badFactors);
     const night = isAfterSunset(h.time, day.sunsetTime);
     const icon  = weatherEmoji(h.symbolCode, night);
@@ -467,8 +468,9 @@ function renderHourlyRows(day) {
     const windCell = hasRealGust
       ? `${h.windSpeed.toFixed(1)} (${h.windGust.toFixed(1)})`
       : h.windSpeed.toFixed(1);
+    const cls = teaser && idx >= 2 ? ' class="extra-hour hidden"' : '';
     return `
-      <tr>
+      <tr${cls}>
         <td class="weather-icon-cell">${icon}</td>
         <td>${h.time}</td>
         <td>${h.temperature.toFixed(1)}</td>
@@ -485,21 +487,48 @@ const HOURLY_THEAD = `<tr>
   <th>Regn (mm)</th><th>Score</th><th>Status</th>
 </tr>`;
 
-function renderHourlyTable(day, collapsed) {
-  const inner = `
+function renderHourlyTable(day, teaser) {
+  const rows = renderHourlyRows(day, teaser);
+  const tableHtml = `
     <div class="table-wrap">
       <table>
         <thead>${HOURLY_THEAD}</thead>
-        <tbody>${renderHourlyRows(day)}</tbody>
+        <tbody>${rows}</tbody>
       </table>
     </div>`;
-  if (!collapsed) return inner;
-  return `
-    <details class="day-hours">
-      <summary>Vis timeprognose (07:00–22:00)</summary>
-      ${inner}
-    </details>`;
+  if (!teaser) return tableHtml;
+  const hoursCount = day.hourlyForecasts.filter(h => h.time >= '07:00' && h.time <= '22:00').length;
+  const toggle = hoursCount > 2 ? `
+    <div class="expand-hours-toggle" onclick="toggleHours(this)">
+      <span class="toggle-chevron">▾</span>
+      <span class="toggle-text">Vis alle timer</span>
+    </div>` : '';
+  return tableHtml + toggle;
 }
+
+window.toggleHours = function(btn) {
+  const clickedCard = btn.closest('.card');
+  const firstExtra  = clickedCard.querySelector('.extra-hour');
+  const expanding   = firstExtra && firstExtra.classList.contains('hidden');
+
+  // Sync all cards in the same visual row (same offsetTop within the grid).
+  const grid     = clickedCard.closest('.daily-grid');
+  const rowCards = grid
+    ? Array.from(grid.querySelectorAll('.card')).filter(c => c.offsetTop === clickedCard.offsetTop)
+    : [clickedCard];
+
+  rowCards.forEach(card => {
+    card.querySelectorAll('.extra-hour').forEach(row => {
+      if (expanding) row.classList.remove('hidden');
+      else           row.classList.add('hidden');
+    });
+    const toggle = card.querySelector('.expand-hours-toggle');
+    if (toggle) {
+      toggle.querySelector('.toggle-chevron').textContent = expanding ? '▴' : '▾';
+      toggle.querySelector('.toggle-text').textContent    = expanding ? 'Skjul timer' : 'Vis alle timer';
+    }
+  });
+};
 
 // ── Daily sections ───────────────────────────────────────────────────────────
 
@@ -544,6 +573,15 @@ document.getElementById('btn-favorite').addEventListener('click', () => {
   toggleFavorite(currentClubId, currentClubName);
   updateStarButton(currentClubId);
   renderFavoritesPanel();
+});
+
+document.querySelectorAll('.tp-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.pref === currentTimePref) return;
+    currentTimePref = btn.dataset.pref;
+    document.querySelectorAll('.tp-btn').forEach(b => b.classList.toggle('active', b === btn));
+    if (currentClubId) loadForecast(currentClubId, currentClubName);
+  });
 });
 
 initMap();

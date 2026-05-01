@@ -13,6 +13,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+
 import java.time.Duration;
 import java.util.List;
 
@@ -121,8 +124,18 @@ public class GolfClubImportService {
             log.info("Overpass returned {} elements.", response.getBody().getElements().size());
             return response.getBody().getElements();
 
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 429) {
+                log.warn("Overpass API unavailable or rate-limited. Skipping import...");
+            } else {
+                log.warn("Overpass API unavailable or rate-limited. Skipping import... (HTTP {})", e.getStatusCode().value());
+            }
+            return List.of();
+        } catch (HttpServerErrorException e) {
+            log.warn("Overpass API unavailable or rate-limited. Skipping import... (HTTP {})", e.getStatusCode().value());
+            return List.of();
         } catch (Exception e) {
-            log.error("Failed to reach Overpass API: {}", e.getMessage());
+            log.warn("Overpass API unavailable or rate-limited. Skipping import... ({})", e.getMessage());
             return List.of();
         }
     }
