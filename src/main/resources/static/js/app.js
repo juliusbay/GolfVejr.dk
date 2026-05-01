@@ -415,6 +415,10 @@ function showError(msg) {
 
 document.getElementById('btn-back').addEventListener('click',  () => showView('selector'));
 document.getElementById('btn-retry').addEventListener('click', () => showView('selector'));
+document.getElementById('header-logo-link').addEventListener('click', e => {
+  e.preventDefault();
+  showView('selector');
+});
 
 document.getElementById('btn-favorite').addEventListener('click', () => {
   toggleFavorite(currentClubId, currentClubName);
