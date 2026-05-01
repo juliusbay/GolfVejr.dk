@@ -6,5 +6,9 @@ public record MapMarkerDTO(
         double lat,
         double lon,
         String status,
-        int score
+        int score,
+        String street,
+        String city,
+        String website,
+        String phone
 ) {}

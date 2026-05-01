@@ -5,6 +5,7 @@ import com.example.golfvejr.DTO.MapMarkerDTO;
 import com.example.golfvejr.Model.Golfclub;
 import com.example.golfvejr.Repository.GolfClubRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MapCacheService {
@@ -24,18 +26,25 @@ public class MapCacheService {
 
     private volatile List<MapMarkerDTO> cache = Collections.emptyList();
 
-    // Trigger a background refresh after the application context is fully ready
-    // so the HTTP server is up and the DB is populated before we start polling.
+    // Fire a background build immediately after the app is fully started.
+    // .exceptionally() ensures any unchecked exception is logged rather than silently dropped.
     @EventListener(ApplicationReadyEvent.class)
     public void onStartup() {
-        CompletableFuture.runAsync(this::refreshCache);
+        CompletableFuture.runAsync(this::refreshCache)
+                .exceptionally(ex -> {
+                    log.error("Map cache startup build failed: {}", ex.getMessage(), ex);
+                    return null;
+                });
     }
 
-    // Refresh every 2 hours (delay measured from the end of the previous run).
+    // Scheduled rebuild every 2 hours, measured from the end of the previous run.
     @Scheduled(fixedDelay = 2 * 60 * 60 * 1000L)
     public void refreshCache() {
         List<Golfclub> clubs = golfClubRepository.findAllByOrderByNameAsc();
+        log.info("Starting map cache build for {} clubs...", clubs.size());
+
         List<MapMarkerDTO> result = new ArrayList<>();
+        int skipped = 0;
 
         for (Golfclub club : clubs) {
             try {
@@ -46,22 +55,29 @@ public class MapCacheService {
                     result.add(new MapMarkerDTO(
                             club.getId(), club.getName(),
                             club.getLatitude(), club.getLongitude(),
-                            today.overallStatus(), today.score()));
+                            today.overallStatus(), today.score(),
+                            club.getStreet(), club.getCity(),
+                            club.getWebsite(), club.getPhone()));
                 }
-            } catch (Exception ignored) {
-                // Skip clubs whose forecast fails; they simply won't appear on the map.
-            }
-
-            // Strict rate-limit courtesy sleep between every Yr API call.
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                return; // Abort without replacing a good cache with partial data.
+            } catch (Exception e) {
+                log.warn("Failed to fetch forecast for club '{}' (id={}): {}",
+                        club.getName(), club.getId(), e.getMessage());
+                skipped++;
+            } finally {
+                // Always sleep after every club — even failed ones — to protect the IP.
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Map cache build interrupted after {}/{} clubs ({} skipped)",
+                            result.size(), clubs.size(), skipped);
+                    return;
+                }
             }
         }
 
         cache = Collections.unmodifiableList(result);
+        log.info("Map cache build complete — {} markers cached, {} clubs skipped.", result.size(), skipped);
     }
 
     public List<MapMarkerDTO> getCachedMarkers() {

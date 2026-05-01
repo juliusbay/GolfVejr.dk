@@ -54,11 +54,18 @@ public class GolfClubImportService {
         }
 
         int saved = 0;
+        int debugCount = 0;
         for (OverpassElement element : elements) {
             String name = extractName(element);
             if (name == null) {
                 log.debug("Skipping unnamed element id={}", element.getId());
                 continue;
+            }
+
+            // Log the raw tags for the first 5 named clubs so we can verify what the API returns.
+            if (debugCount < 5) {
+                log.info("Raw tags for club '{}': {}", name, element.getTags());
+                debugCount++;
             }
 
             if (!isDanishByTag(element)) {
@@ -79,7 +86,12 @@ public class GolfClubImportService {
                 continue;
             }
 
-            golfClubRepository.save(new Golfclub(name, lat, lon));
+            Golfclub club = new Golfclub(name, lat, lon);
+            club.setStreet(extractStreet(element));
+            club.setCity(extractTag(element, "addr:city"));
+            club.setWebsite(extractTag(element, "website"));
+            club.setPhone(extractTag(element, "phone"));
+            golfClubRepository.save(club);
             saved++;
         }
 
@@ -149,5 +161,19 @@ public class GolfClubImportService {
 
     private boolean hasValidCoordinates(double lat, double lon) {
         return lat != 0.0 && lon != 0.0;
+    }
+
+    private String extractTag(OverpassElement element, String key) {
+        if (element.getTags() == null) return null;
+        String value = element.getTags().get(key);
+        return (value != null && !value.isBlank()) ? value.trim() : null;
+    }
+
+    // Combines addr:street and addr:housenumber into a single string, e.g. "Golfvej 12".
+    private String extractStreet(OverpassElement element) {
+        String street = extractTag(element, "addr:street");
+        if (street == null) return null;
+        String number = extractTag(element, "addr:housenumber");
+        return number != null ? street + " " + number : street;
     }
 }

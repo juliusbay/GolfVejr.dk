@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
@@ -42,11 +44,11 @@ public class ForecastService {
 
         return byDay.entrySet().stream()
                 .filter(e -> !e.getValue().isEmpty())
-                .map(e -> buildDailyAssessment(e.getKey(), e.getValue()))
+                .map(e -> buildDailyAssessment(e.getKey(), e.getValue(), lat, lon))
                 .collect(Collectors.toList());
     }
 
-    private DailyGolfAssessmentDTO buildDailyAssessment(LocalDate date, List<TimeSeries> entries) {
+    private DailyGolfAssessmentDTO buildDailyAssessment(LocalDate date, List<TimeSeries> entries, double lat, double lon) {
         String dateStr = date.format(DATE_FORMATTER);
         String raw = date.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.of("da"));
         String dayOfWeek = raw.substring(0, 1).toUpperCase() + raw.substring(1);
@@ -148,10 +150,11 @@ public class ForecastService {
         String overallStatus = GolfAssessmentService.deriveStatus(avgScore);
         String summary = GolfAssessmentService.deriveSummary(avgScore, badFactors);
         String bestWindow = findBestWindow(windowHourNums, windowDTOs);
+        String sunsetTime = calculateSunset(lat, lon, date);
 
         return new DailyGolfAssessmentDTO(
                 dateStr, dayOfWeek, overallStatus, avgScore,
-                summary, goodFactors, badFactors, bestWindow, allHours);
+                summary, goodFactors, badFactors, bestWindow, allHours, sunsetTime);
     }
 
     // Sliding-window search over daytime entries (window = 4 hours or all entries if fewer).
@@ -189,6 +192,69 @@ public class ForecastService {
         if (temp >= 10) return fmt("Køligt vejr (%.0f°C)", temp);
         if (temp >= 6)  return fmt("Koldt vejr (%.0f°C)", temp);
         return fmt("For koldt til golf (%.0f°C)", temp);
+    }
+
+    // NOAA solar equations — accurate to within ~1 minute for Danish latitudes.
+    // Returns "HH:mm" in Copenhagen time, or null on polar day/night.
+    private String calculateSunset(double lat, double lon, LocalDate date) {
+        // Julian Day for noon UT on the given date
+        double jd = date.toEpochDay() + 2440588.0;
+
+        // Julian centuries since J2000.0
+        double t = (jd - 2451545.0) / 36525.0;
+
+        // Geometric mean longitude of the sun (degrees)
+        double l0 = (280.46646 + t * (36000.76983 + t * 0.0003032)) % 360;
+
+        // Geometric mean anomaly (degrees)
+        double m    = 357.52911 + t * (35999.05029 - 0.0001537 * t);
+        double mRad = Math.toRadians(m);
+
+        // Equation of center
+        double c = (1.914602 - t * (0.004817 + 0.000014 * t)) * Math.sin(mRad)
+                 + (0.019993 - 0.000101 * t) * Math.sin(2 * mRad)
+                 + 0.000289 * Math.sin(3 * mRad);
+
+        // Apparent longitude (corrected for nutation and aberration)
+        double omega  = 125.04 - 1934.136 * t;
+        double lambda = (l0 + c) - 0.00569 - 0.00478 * Math.sin(Math.toRadians(omega));
+
+        // Obliquity of the ecliptic (corrected)
+        double epsilon = 23.0
+                + (26.0 + (21.448 - t * (46.8150 + t * (0.00059 - t * 0.001813))) / 60.0) / 60.0
+                + 0.00256 * Math.cos(Math.toRadians(omega));
+
+        // Solar declination
+        double decl    = Math.toDegrees(Math.asin(
+                Math.sin(Math.toRadians(epsilon)) * Math.sin(Math.toRadians(lambda))));
+
+        // Equation of time (minutes)
+        double y      = Math.pow(Math.tan(Math.toRadians(epsilon / 2.0)), 2);
+        double eqTime = 4.0 * Math.toDegrees(
+                  y * Math.sin(2 * Math.toRadians(l0))
+                - 2 * 0.016708634 * Math.sin(mRad)
+                + 4 * 0.016708634 * y * Math.sin(mRad) * Math.cos(2 * Math.toRadians(l0))
+                - 0.5 * y * y * Math.sin(4 * Math.toRadians(l0))
+                - 1.25 * 0.016708634 * 0.016708634 * Math.sin(2 * mRad));
+
+        // Sunset hour angle — 90.833° accounts for atmospheric refraction + solar disc radius
+        double latRad  = Math.toRadians(lat);
+        double declRad = Math.toRadians(decl);
+        double cosHa   = (Math.cos(Math.toRadians(90.833)) - Math.sin(latRad) * Math.sin(declRad))
+                       / (Math.cos(latRad) * Math.cos(declRad));
+
+        if (Math.abs(cosHa) > 1.0) return null; // polar day or polar night
+
+        double ha = Math.toDegrees(Math.acos(cosHa));
+
+        // Sunset in UTC minutes from midnight: solar noon + hour-angle offset
+        double sunsetUtcMinutes = 720.0 - 4.0 * lon - eqTime + ha * 4.0;
+
+        ZonedDateTime sunsetUtc   = date.atStartOfDay(ZoneOffset.UTC)
+                                        .plusSeconds(Math.round(sunsetUtcMinutes * 60));
+        ZonedDateTime sunsetLocal = sunsetUtc.withZoneSameInstant(COPENHAGEN_TZ);
+
+        return String.format("%02d:%02d", sunsetLocal.getHour(), sunsetLocal.getMinute());
     }
 
     private static String fmt(String pattern, Object... args) {

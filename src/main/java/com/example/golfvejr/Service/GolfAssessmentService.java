@@ -74,6 +74,16 @@ public class GolfAssessmentService {
             precipitation = -1.0;          // no data — treat as uncertain rain
         }
 
+        // symbol_code: prefer 1h window, fall back to 6h, then 12h.
+        String symbolCode = null;
+        if (data.getNext1Hours() != null && data.getNext1Hours().getSummary() != null) {
+            symbolCode = data.getNext1Hours().getSummary().getSymbolCode();
+        } else if (data.getNext6Hours() != null && data.getNext6Hours().getSummary() != null) {
+            symbolCode = data.getNext6Hours().getSummary().getSymbolCode();
+        } else if (data.getNext12Hours() != null && data.getNext12Hours().getSummary() != null) {
+            symbolCode = data.getNext12Hours().getSummary().getSymbolCode();
+        }
+
         List<String> good = new ArrayList<>();
         List<String> bad  = new ArrayList<>();
 
@@ -112,7 +122,7 @@ public class GolfAssessmentService {
             time = zdt.format(TIME_FORMATTER);
         }
 
-        return new HourlyForecastDTO(time, temp, wind, gust, precipitation, isSixHour, status, normalizedScore, summary, good, bad);
+        return new HourlyForecastDTO(time, temp, wind, gust, precipitation, isSixHour, status, normalizedScore, summary, good, bad, symbolCode);
     }
 
     // -- Scoring methods --

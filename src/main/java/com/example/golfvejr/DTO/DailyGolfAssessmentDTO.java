@@ -11,5 +11,6 @@ public record DailyGolfAssessmentDTO(
         List<String> goodFactors,
         List<String> badFactors,
         String bestWindow,
-        List<HourlyForecastDTO> hourlyForecasts
+        List<HourlyForecastDTO> hourlyForecasts,
+        String sunsetTime
 ) {}

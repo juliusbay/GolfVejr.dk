@@ -374,8 +374,13 @@ details.info-card[open] > summary::after { transform: rotate(90deg); }
   margin-bottom: 1.25rem;
 }
 .today-status-col { display: flex; flex-direction: column; gap: 0.5rem; }
-.today-summary { font-size: 1.35rem; font-weight: 700; line-height: 1.25; }
-.today-date { color: var(--text-muted); font-size: 0.86rem; }
+.today-summary { font-size: 1.65rem; font-weight: 700; line-height: 1.2; }
+.today-date { font-size: 1rem; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+.today-hourly-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
 
 /* Score ring */
 .score-ring-wrap {
@@ -619,6 +624,14 @@ th {
 td { padding: 0.38rem 0.7rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface-2); }
+.weather-icon-cell {
+  width: 2rem;
+  min-width: 2rem;
+  text-align: center;
+  font-size: 1.1rem;
+  padding-left: 0.5rem;
+  padding-right: 0.25rem;
+}
 .score-tip {
   cursor: help;
   text-decoration: underline dotted;
@@ -642,6 +655,58 @@ tr:hover td { background: var(--surface-2); }
   border-radius: 2px;
   max-width: 100%;
 }
+
+/* ── Map popup ── */
+.map-popup-wrap .leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  padding: 0;
+  overflow: hidden;
+}
+.map-popup-wrap .leaflet-popup-content { margin: 0; font-family: 'DM Sans', sans-serif; }
+.map-popup-wrap .leaflet-popup-tip-container { margin-top: -1px; }
+.map-popup {
+  padding: 0.85rem 1rem;
+  min-width: 180px;
+}
+.mp-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.3rem;
+  line-height: 1.3;
+}
+.mp-addr {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-bottom: 0.4rem;
+}
+.mp-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.55rem;
+}
+.mp-link {
+  font-size: 0.78rem;
+  color: #1f2937;
+  text-decoration: none;
+}
+.mp-link:hover { text-decoration: underline; }
+.mp-btn {
+  width: 100%;
+  background: #1f2937;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.1rem;
+  font-family: 'DM Sans', sans-serif;
+}
+.mp-btn:hover { background: #374151; transform: none; }
 
 /* ── Map tooltip ── */
 .map-tooltip {

@@ -132,7 +132,26 @@ function initMap() {
   }
 }
 
+function buildPopupHtml(club) {
+  const addr = [club.street, club.city].filter(Boolean).join(', ');
+  const addrLine  = addr    ? `<p class="mp-addr">${escapeHtml(addr)}</p>` : '';
+  const webLine   = club.website
+    ? `<a class="mp-link" href="${escapeHtml(club.website)}" target="_blank" rel="noopener">🌐 Hjemmeside</a>` : '';
+  const phoneLine = club.phone
+    ? `<a class="mp-link" href="tel:${escapeHtml(club.phone)}">${escapeHtml(club.phone)}</a>` : '';
+  const linksRow  = (webLine || phoneLine)
+    ? `<div class="mp-links">${webLine}${phoneLine}</div>` : '';
+  return `
+    <div class="map-popup">
+      <h4 class="mp-name">${escapeHtml(club.name)}</h4>
+      ${addrLine}
+      ${linksRow}
+      <button class="mp-btn" data-id="${escapeHtml(String(club.id))}" data-name="${escapeHtml(club.name)}">Se vejrudsigt →</button>
+    </div>`;
+}
+
 function loadMapData() {
+  if (!map) return;
   fetch(`${API}/map-data`)
     .then(r => r.ok ? r.json() : Promise.reject())
     .then(data => {
@@ -149,14 +168,22 @@ function loadMapData() {
           fillOpacity: 0.88,
         }).addTo(map);
         marker.bindTooltip(club.name, { permanent: false, direction: 'top', className: 'map-tooltip' });
-        marker.on('click', () => {
-          loadForecast(club.id, club.name);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
+        marker.bindPopup(buildPopupHtml(club), { maxWidth: 260, className: 'map-popup-wrap' });
         mapMarkers.push(marker);
       });
     })
     .catch(() => {}); // Cache may still be empty on first startup — fail silently.
+
+  // Delegate forecast-button clicks from any open popup.
+  map.on('popupopen', e => {
+    const btn = e.popup.getElement().querySelector('.mp-btn');
+    if (!btn) return;
+    btn.onclick = () => {
+      map.closePopup();
+      loadForecast(btn.dataset.id, btn.dataset.name);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  });
 }
 
 // ── Favourite clubs (localStorage) ───────────────────────────────────────────
@@ -371,14 +398,17 @@ function renderTodayCard(day) {
   el.innerHTML = `
     <div class="today-grid">
       <div class="today-status-col">
+        <div class="today-date">${escapeHtml(day.dayOfWeek)} ${day.date}</div>
         ${renderBadge(day.overallStatus, true)}
         <h2 class="today-summary">${escapeHtml(day.summary)}</h2>
-        <div class="today-date">${escapeHtml(day.dayOfWeek)} ${day.date}</div>
       </div>
       ${renderScoreRing(day.score, day.overallStatus, tip)}
     </div>
     ${windowHtml}
-    ${renderFactors(day.goodFactors, day.badFactors)}`;
+    ${renderFactors(day.goodFactors, day.badFactors)}
+    <div class="today-hourly-section">
+      ${renderHourlyTable(day, false)}
+    </div>`;
 }
 
 // ── Best days ────────────────────────────────────────────────────────────────
@@ -400,34 +430,85 @@ function renderBestDays(days) {
   ).join('');
 }
 
+// ── Weather icon helper ──────────────────────────────────────────────────────
+
+function weatherEmoji(symbolCode, isNight) {
+  if (!symbolCode) return '';
+  const base = symbolCode.replace(/_(day|night|polartwilight)$/, '');
+  if (base.includes('thunder'))                    return '⛈️';
+  if (base.includes('snow'))                       return '❄️';
+  if (base.includes('sleet'))                      return '🌨️';
+  if (base.includes('heavyrain'))                  return '🌧️';
+  if (base.includes('rain') || base === 'drizzle') return '🌦️';
+  if (base === 'fog')                              return '🌫️';
+  if (base === 'cloudy')                           return '☁️';
+  if (base === 'partlycloudy') return isNight ? '☁️'  : '⛅';
+  if (base === 'fair')         return isNight ? '🌙'  : '🌤️';
+  if (base === 'clearsky')     return isNight ? '🌙'  : '☀️';
+  return '';
+}
+
+function isAfterSunset(timeStr, sunsetTime) {
+  if (!sunsetTime) return false;
+  const [sh, sm] = sunsetTime.split(':').map(Number);
+  const rowHour = parseInt(timeStr, 10);
+  return rowHour * 60 >= sh * 60 + sm;
+}
+
+// ── Hourly table (shared) ─────────────────────────────────────────────────────
+
+function renderHourlyRows(day) {
+  const hours = day.hourlyForecasts.filter(h => h.time >= '07:00' && h.time <= '22:00');
+  return hours.map(h => {
+    const hTip = buildTooltip(h.goodFactors, h.badFactors);
+    const night = isAfterSunset(h.time, day.sunsetTime);
+    const icon  = weatherEmoji(h.symbolCode, night);
+    const hasRealGust = h.windGust != null && Math.abs(h.windGust - h.windSpeed) > 0.1;
+    const windCell = hasRealGust
+      ? `${h.windSpeed.toFixed(1)} (${h.windGust.toFixed(1)})`
+      : h.windSpeed.toFixed(1);
+    return `
+      <tr>
+        <td class="weather-icon-cell">${icon}</td>
+        <td>${h.time}</td>
+        <td>${h.temperature.toFixed(1)}</td>
+        <td>${windCell}</td>
+        <td>${h.precipitation < 0 ? '–' : h.precipitation.toFixed(1)}</td>
+        <td><span class="score-tip" data-tip="${escapeHtml(hTip)}">${h.score}<span class="score-mini-bar"><span style="width:${h.score}%;background:${scoreColor(statusCls(h.status))}"></span></span></span></td>
+        <td>${renderBadge(h.status)}</td>
+      </tr>`;
+  }).join('');
+}
+
+const HOURLY_THEAD = `<tr>
+  <th class="weather-icon-cell"></th><th>Tidspunkt</th><th>Temp (°C)</th><th>Vind (m/s)</th>
+  <th>Regn (mm)</th><th>Score</th><th>Status</th>
+</tr>`;
+
+function renderHourlyTable(day, collapsed) {
+  const inner = `
+    <div class="table-wrap">
+      <table>
+        <thead>${HOURLY_THEAD}</thead>
+        <tbody>${renderHourlyRows(day)}</tbody>
+      </table>
+    </div>`;
+  if (!collapsed) return inner;
+  return `
+    <details class="day-hours">
+      <summary>Vis timeprognose (07:00–22:00)</summary>
+      ${inner}
+    </details>`;
+}
+
 // ── Daily sections ───────────────────────────────────────────────────────────
 
 function renderDailySections(forecast) {
   const el = document.getElementById('daily-sections');
-  el.innerHTML = forecast.map(day => {
-    const tip   = buildTooltip(day.goodFactors, day.badFactors);
-    const hours = day.hourlyForecasts.filter(h => h.time >= '07:00' && h.time <= '22:00');
-
+  el.innerHTML = forecast.slice(1).map(day => {
+    const tip = buildTooltip(day.goodFactors, day.badFactors);
     const windowHtml = day.bestWindow ? `
       <div class="day-window-row">&#9201; Bedste golfvindue: <strong>${escapeHtml(day.bestWindow)}</strong></div>` : '';
-
-    const rows = hours.map(h => {
-      const hTip = buildTooltip(h.goodFactors, h.badFactors);
-      const hasRealGust = h.windGust != null && Math.abs(h.windGust - h.windSpeed) > 0.1;
-      const windCell = hasRealGust
-        ? `${h.windSpeed.toFixed(1)} (${h.windGust.toFixed(1)})`
-        : h.windSpeed.toFixed(1);
-      return `
-        <tr>
-          <td>${h.time}</td>
-          <td>${h.temperature.toFixed(1)}</td>
-          <td>${windCell}</td>
-          <td>${h.precipitation < 0 ? '–' : h.precipitation.toFixed(1)}</td>
-          <td><span class="score-tip" data-tip="${escapeHtml(hTip)}">${h.score}<span class="score-mini-bar"><span style="width:${h.score}%;background:${scoreColor(statusCls(h.status))}"></span></span></span></td>
-          <td>${renderBadge(h.status)}</td>
-        </tr>`;
-    }).join('');
-
     return `
       <div class="card">
         <div class="day-header">
@@ -440,21 +521,8 @@ function renderDailySections(forecast) {
         </div>
         ${windowHtml}
         <div class="day-factors">${renderFactors(day.goodFactors, day.badFactors)}</div>
-        <details class="day-hours">
-          <summary>Vis timeprognose (07:00–22:00)</summary>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tidspunkt</th><th>Temp (°C)</th><th>Vind (m/s)</th>
-                  <th>Regn (mm)</th><th>Score</th><th>Status</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-        </details>
-      </div>`
+        ${renderHourlyTable(day, true)}
+      </div>`;
   }).join('');
 }
 

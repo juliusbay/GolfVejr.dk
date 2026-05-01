@@ -13,5 +13,6 @@ public record HourlyForecastDTO(
         int score,
         String summary,
         List<String> goodFactors,
-        List<String> badFactors
+        List<String> badFactors,
+        String symbolCode        // MET Norway symbol_code, e.g. "clearsky_day", "rain"
 ) {}

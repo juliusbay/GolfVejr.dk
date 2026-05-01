@@ -11,6 +11,10 @@ public class Golfclub {
     private String name;
     private double latitude;
     private double longitude;
+    private String street;
+    private String city;
+    private String website;
+    private String phone;
 
     public Golfclub(String name, double latitude, double longitude){
         this.name = name;
@@ -58,4 +62,16 @@ public class Golfclub {
     public void setLongitude(double longitude) {
         this.longitude = longitude;
     }
+
+    public String getStreet() { return street; }
+    public void setStreet(String street) { this.street = street; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+
+    public String getWebsite() { return website; }
+    public void setWebsite(String website) { this.website = website; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 }
