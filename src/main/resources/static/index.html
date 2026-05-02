@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="/css/style.css?v=23">
+  <link rel="stylesheet" href="/css/style.css?v=30">
 </head>
 <body>
 
@@ -39,6 +39,26 @@
     <div id="favorites-list-container"></div>
 
     <div id="denmark-map" style="height: 420px; width: 100%; border-radius: 12px; margin-bottom: 1.5rem; z-index: 1;"></div>
+
+    <details class="info-card compare-panel" id="compare-panel">
+      <summary>&#9878; Sammenlign klubber</summary>
+      <div class="info-content">
+        <div class="compare-selects">
+          <div class="compare-select-wrap">
+            <label class="compare-label" for="cmp-select-1">Klub 1</label>
+            <select id="cmp-select-1" class="compare-select"><option value="">Vælg klub...</option></select>
+          </div>
+          <div class="compare-vs-divider">vs</div>
+          <div class="compare-select-wrap">
+            <label class="compare-label" for="cmp-select-2">Klub 2</label>
+            <select id="cmp-select-2" class="compare-select"><option value="">Vælg klub...</option></select>
+          </div>
+        </div>
+        <div class="compare-date-label">Vælg dato</div>
+        <div id="compare-date-pills" class="compare-date-pills"></div>
+        <button id="btn-compare" disabled>Sammenlign &rarr;</button>
+      </div>
+    </details>
 
     <div class="info-card">
       <div class="info-content">
@@ -111,13 +131,22 @@
     </div>
   </div>
 
+
 </main>
 
 <footer>
   <p>Vejrdata fra <a href="https://api.met.no" target="_blank" rel="noopener">MET Norway</a></p>
 </footer>
 
+<div id="compare-modal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-content">
+    <button class="close-modal" aria-label="Luk">&times;</button>
+    <div id="compare-modal-body"></div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/js/app.js?v=23"></script>
+<script src="/js/app.js?v=30"></script>
 </body>
 </html>

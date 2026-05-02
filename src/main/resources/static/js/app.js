@@ -15,9 +15,9 @@ function showView(name) {
 
 // ── Status helpers ──────────────────────────────────────────────────────────
 
-function statusCls(s)  { return { GREEN: 'good', YELLOW: 'warn', RED: 'bad', Nat: 'night' }[s] || 'bad'; }
-function statusIcon(s) { return { GREEN: '✓', YELLOW: '~', RED: '✕', Nat: '🌙' }[s] || ''; }
-function statusText(s) { return { GREEN: 'Ideelt', YELLOW: 'Spilbart', RED: 'Frarådes', Nat: 'Nat' }[s] || s; }
+function statusCls(s)  { return { GREEN: 'good', YELLOW: 'warn', RED: 'bad', Nat: 'night', Solnedgang: 'status-night' }[s] || 'bad'; }
+function statusIcon(s) { return { GREEN: '✓', YELLOW: '~', RED: '✕', Nat: '🌙', Solnedgang: '🌙' }[s] || ''; }
+function statusText(s) { return { GREEN: 'Ideelt', YELLOW: 'Spilbart', RED: 'Frarådes', Nat: 'Nat', Solnedgang: 'Solnedgang' }[s] || s; }
 
 function renderBadge(status, large) {
   return `<span class="status-badge ${statusCls(status)}${large ? ' large' : ''}">${statusIcon(status)} ${statusText(status)}</span>`;
@@ -59,7 +59,7 @@ document.addEventListener('mousemove', e => {
 // ── Score arc (SVG gauge) ────────────────────────────────────────────────────
 
 function scoreColor(cls) {
-  return { good: '#16a34a', warn: '#d97706', bad: '#dc2626', night: '#6b7280' }[cls] || '#16a34a';
+  return { good: '#16a34a', warn: '#d97706', bad: '#dc2626', night: '#6b7280', 'status-night': '#4338ca' }[cls] || '#16a34a';
 }
 
 function renderScoreRing(score, status, tooltip) {
@@ -273,6 +273,10 @@ let currentClubId    = null;
 let currentClubName  = null;
 let currentTimePref  = 'all';
 
+let cmpClub1Id  = null;
+let cmpClub2Id  = null;
+let cmpDateStr  = null;
+
 async function loadClubs() {
   const input    = document.getElementById('club-search');
   const dropdown = document.getElementById('club-dropdown');
@@ -283,6 +287,9 @@ async function loadClubs() {
       if (!r.ok) throw new Error('Server fejl');
       return r.json();
     });
+
+    populateCompareSelects();
+    populateCompareDates();
 
     input.addEventListener('focus', () => renderDropdown(input.value, dropdown, btn));
     input.addEventListener('input', () => {
@@ -453,13 +460,13 @@ function isAfterSunset(timeStr, sunsetTime) {
   if (!sunsetTime) return false;
   const [sh, sm] = sunsetTime.split(':').map(Number);
   const rowHour = parseInt(timeStr, 10);
-  return rowHour * 60 >= sh * 60 + sm;
+  return rowHour * 60 > sh * 60 + sm;
 }
 
 // ── Hourly table (shared) ─────────────────────────────────────────────────────
 
 function renderHourlyRows(day, teaser = false) {
-  const hours = day.hourlyForecasts.filter(h => h.time >= '07:00' && h.time <= '22:00');
+  const hours = day.hourlyForecasts.filter(h => h.time >= '06:00' && h.time <= '22:00');
   return hours.map((h, idx) => {
     const hTip = buildTooltip(h.goodFactors, h.badFactors);
     const night = isAfterSunset(h.time, day.sunsetTime);
@@ -497,7 +504,7 @@ function renderHourlyTable(day, teaser) {
       </table>
     </div>`;
   if (!teaser) return tableHtml;
-  const hoursCount = day.hourlyForecasts.filter(h => h.time >= '07:00' && h.time <= '22:00').length;
+  const hoursCount = day.hourlyForecasts.filter(h => h.time >= '06:00' && h.time <= '22:00').length;
   const toggle = hoursCount > 2 ? `
     <div class="expand-hours-toggle" onclick="toggleHours(this)">
       <span class="toggle-chevron">▾</span>
@@ -536,11 +543,11 @@ function renderDailySections(forecast) {
   const el = document.getElementById('daily-sections');
   el.innerHTML = forecast.slice(1).map(day => {
     const tip = buildTooltip(day.goodFactors, day.badFactors);
-    const windowHtml = day.bestWindow ? `
-      <div class="day-window-row">&#9201; Bedste golfvindue: <strong>${escapeHtml(day.bestWindow)}</strong></div>` : '';
+    const isIntervalDay = day.hourlyForecasts.length > 0 && day.hourlyForecasts[0].time.includes('–');
+    const showWindow    = day.bestWindow && !isIntervalDay;
     return `
       <div class="card">
-        <div class="day-header">
+        <div class="card-header">
           ${renderBadge(day.overallStatus)}
           <div class="day-header-text">
             <strong>${escapeHtml(day.dayOfWeek)} ${day.date}</strong>
@@ -548,11 +555,130 @@ function renderDailySections(forecast) {
           </div>
           <span class="day-score-badge score-tip" data-tip="${escapeHtml(tip)}">${day.score}/100</span>
         </div>
-        ${windowHtml}
-        <div class="day-factors">${renderFactors(day.goodFactors, day.badFactors)}</div>
+        <div class="day-window-row${showWindow ? '' : ' day-window-empty'}">
+          ${showWindow ? `&#9201; Bedste golfvindue: <strong>${escapeHtml(day.bestWindow)}</strong>` : ''}
+        </div>
+        <div class="card-factors">${renderFactors(day.goodFactors, day.badFactors)}</div>
         ${renderHourlyTable(day, true)}
       </div>`;
   }).join('');
+}
+
+// ── Compare clubs ────────────────────────────────────────────────────────────
+
+function populateCompareSelects() {
+  [1, 2].forEach(n => {
+    const sel = document.getElementById(`cmp-select-${n}`);
+    sel.innerHTML = '<option value="">Vælg klub...</option>' +
+      allClubs.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    sel.addEventListener('change', () => {
+      if (n === 1) cmpClub1Id = sel.value || null;
+      else         cmpClub2Id = sel.value || null;
+      updateCompareBtn();
+    });
+  });
+}
+
+function populateCompareDates() {
+  const container = document.getElementById('compare-date-pills');
+  const today = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const days = [];
+  for (let i = 0; i < 9; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const label = d.toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric', month: 'short' });
+    const value = `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+    days.push({ label, value });
+  }
+  container.innerHTML = days.map(d =>
+    `<button class="date-pill" data-date="${d.value}">${escapeHtml(d.label)}</button>`
+  ).join('');
+  container.querySelectorAll('.date-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.date-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      cmpDateStr = btn.dataset.date;
+      updateCompareBtn();
+    });
+  });
+}
+
+function updateCompareBtn() {
+  document.getElementById('btn-compare').disabled =
+    !(cmpClub1Id && cmpClub2Id && cmpDateStr && cmpClub1Id !== cmpClub2Id);
+}
+
+function openCompareModal() {
+  document.getElementById('compare-modal').classList.remove('hidden');
+}
+
+function closeCompareModal() {
+  document.getElementById('compare-modal').classList.add('hidden');
+}
+
+async function loadCompare() {
+  const body = document.getElementById('compare-modal-body');
+  body.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><p>Henter vejrdata...</p></div>';
+  openCompareModal();
+  try {
+    const [f1, f2] = await Promise.all([
+      fetch(`${API}/forecast/${cmpClub1Id}`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+      fetch(`${API}/forecast/${cmpClub2Id}`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+    ]);
+    const day1 = f1.find(d => d.date === cmpDateStr);
+    const day2 = f2.find(d => d.date === cmpDateStr);
+    if (!day1 || !day2) {
+      body.innerHTML = '<div class="card error-card"><p>Ingen vejrdata for den valgte dato.</p></div>';
+      return;
+    }
+    const club1 = allClubs.find(c => String(c.id) === String(cmpClub1Id));
+    const club2 = allClubs.find(c => String(c.id) === String(cmpClub2Id));
+    body.innerHTML = renderComparisonCard(club1?.name || 'Klub 1', day1, club2?.name || 'Klub 2', day2);
+  } catch {
+    body.innerHTML = '<div class="card error-card"><p>Kunne ikke hente sammenligningsdata. Prøv igen.</p></div>';
+  }
+}
+
+function vsRow(left, label, right) {
+  return `
+    <div class="vs-row">
+      <div class="vs-left">${left}</div>
+      <div class="vs-label">${escapeHtml(label)}</div>
+      <div class="vs-right">${right}</div>
+    </div>`;
+}
+
+function renderComparisonCard(name1, day1, name2, day2) {
+  const winner = day1.score > day2.score ? 1 : day2.score > day1.score ? 2 : 0;
+  const scoreHtml = (day, w) =>
+    `<span class="vs-score${w ? ' winner' : ''}">${day.score}<span class="vs-den">/100</span></span>`;
+  const windowHtml = day =>
+    day.bestWindow
+      ? `<span class="window-tag">&#9201; ${escapeHtml(day.bestWindow)}</span>`
+      : `<span class="vs-none">—</span>`;
+
+  return `
+    <div class="vs-card">
+      <div class="vs-header">
+        <div class="vs-club-name${winner === 1 ? ' winner-highlight' : ''}">${escapeHtml(name1)}</div>
+        <div class="vs-header-center">vs</div>
+        <div class="vs-club-name right${winner === 2 ? ' winner-highlight' : ''}">${escapeHtml(name2)}</div>
+      </div>
+      ${vsRow(scoreHtml(day1, winner === 1), 'Score', scoreHtml(day2, winner === 2))}
+      ${vsRow(renderBadge(day1.overallStatus), 'Status', renderBadge(day2.overallStatus))}
+      ${vsRow(
+        `<span class="vs-summary">${escapeHtml(day1.summary)}</span>`,
+        'Vurdering',
+        `<span class="vs-summary">${escapeHtml(day2.summary)}</span>`
+      )}
+      ${vsRow(windowHtml(day1), 'Bedste vindue', windowHtml(day2))}
+      ${vsRow(
+        renderFactors(day1.goodFactors, day1.badFactors),
+        'Faktorer',
+        renderFactors(day2.goodFactors, day2.badFactors)
+      )}
+    </div>`;
 }
 
 // ── Error / init ─────────────────────────────────────────────────────────────
@@ -562,8 +688,13 @@ function showError(msg) {
   showView('error');
 }
 
-document.getElementById('btn-back').addEventListener('click',  () => showView('selector'));
-document.getElementById('btn-retry').addEventListener('click', () => showView('selector'));
+document.getElementById('btn-back').addEventListener('click',    () => showView('selector'));
+document.getElementById('btn-retry').addEventListener('click',   () => showView('selector'));
+document.getElementById('btn-compare').addEventListener('click', loadCompare);
+
+document.querySelector('.close-modal').addEventListener('click',  closeCompareModal);
+document.querySelector('.modal-overlay').addEventListener('click', closeCompareModal);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCompareModal(); });
 document.getElementById('header-logo-link').addEventListener('click', e => {
   e.preventDefault();
   showView('selector');

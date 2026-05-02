@@ -116,7 +116,7 @@ public class GolfAssessmentService {
         String time;
         if (isSixHour) {
             int startH = zdt.getHour();
-            int endH   = (startH + 6) % 24;
+            int endH   = Math.min(startH + 6, 22);
             time = String.format("%02d:00–%02d:00", startH, endH);
         } else {
             time = zdt.format(TIME_FORMATTER);

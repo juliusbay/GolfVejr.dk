@@ -65,11 +65,11 @@ public class ForecastService {
             int hour = ts.getTime().withZoneSameInstant(COPENHAGEN_TZ).getHour();
             allHours.add(dto);
             allHourNums.add(hour);
-            if (hour >= 7 && hour <= 22) {
+            if (hour >= 6 && hour <= 22) {
                 daytimeDTOs.add(dto);
                 daytimeHourNums.add(hour);
             }
-            if (hour >= 7 && hour <= LATEST_WINDOW_HOUR) {
+            if (hour >= 6 && hour <= LATEST_WINDOW_HOUR) {
                 windowDTOs.add(dto);
                 windowHourNums.add(hour);
             }
@@ -92,7 +92,7 @@ public class ForecastService {
         double total = 0, weightSum = 0;
         for (int i = 0; i < assessment.size(); i++) {
             int h = hours.get(i);
-            if (sunsetHour >= 0 && h >= sunsetHour) continue;
+            if (sunsetHour >= 0 && h > sunsetHour) continue;
             double w;
             if (isAllDay(timePref)) {
                 w = (h >= 10 && h <= 16) ? 1.5 : 1.0;
@@ -155,7 +155,7 @@ public class ForecastService {
             badFactors.add(fmt("Regn forventet (%s%.1f mm/t)", approx, maxPrecip));
         }
 
-        // Single temperature label based on the warmest daytime hour (07:00–21:00).
+        // Single temperature label based on the warmest daytime hour (06:00–21:00).
         double maxTemp = windowDTOs.isEmpty()
                 ? assessment.stream().mapToDouble(HourlyForecastDTO::temperature).max().orElse(0)
                 : windowDTOs.stream().mapToDouble(HourlyForecastDTO::temperature).max().orElse(0);
@@ -174,7 +174,7 @@ public class ForecastService {
         List<Integer>           prefWindowHourNums = new ArrayList<>();
         for (int i = 0; i < windowDTOs.size(); i++) {
             int h = windowHourNums.get(i);
-            if (sunsetHour >= 0 && h >= sunsetHour) continue;
+            if (sunsetHour >= 0 && h > sunsetHour) continue;
             if (isAllDay(timePref) || (h >= prefRange[0] && h < prefRange[1])) {
                 prefWindowDTOs.add(windowDTOs.get(i));
                 prefWindowHourNums.add(h);
@@ -188,11 +188,11 @@ public class ForecastService {
             List<HourlyForecastDTO> penalized = new ArrayList<>(allHours.size());
             for (int i = 0; i < allHours.size(); i++) {
                 HourlyForecastDTO dto = allHours.get(i);
-                if (allHourNums.get(i) >= sunsetHour) {
+                if (allHourNums.get(i) > sunsetHour) {
                     dto = new HourlyForecastDTO(
                             dto.time(), dto.temperature(), dto.windSpeed(), dto.windGust(),
                             dto.precipitation(), dto.isSixHour(),
-                            "RED", 0, "Mørkt – ikke golfvejr",
+                            "Solnedgang", 0, "Solen er gået ned",
                             List.of(), List.of(), dto.symbolCode());
                 }
                 penalized.add(dto);
@@ -237,12 +237,12 @@ public class ForecastService {
     // Returns [startHour inclusive, endHour exclusive] for the preferred scoring window.
     private static int[] preferredRange(String timePref, int sunsetHour) {
         int effectiveSunset = sunsetHour >= 0 ? sunsetHour : 22;
-        if (timePref == null) return new int[]{7, effectiveSunset};
+        if (timePref == null) return new int[]{6, effectiveSunset};
         return switch (timePref.toLowerCase()) {
             case "morgen"      -> new int[]{6, 12};
             case "eftermiddag" -> new int[]{12, 18};
             case "aften"       -> new int[]{18, effectiveSunset};
-            default            -> new int[]{7, effectiveSunset};
+            default            -> new int[]{6, effectiveSunset};
         };
     }
 
