@@ -191,7 +191,7 @@ public class ForecastService {
                 if (allHourNums.get(i) > sunsetHour) {
                     dto = new HourlyForecastDTO(
                             dto.time(), dto.temperature(), dto.windSpeed(), dto.windGust(),
-                            dto.precipitation(), dto.isSixHour(),
+                            dto.windDirection(), dto.precipitation(), dto.isSixHour(),
                             "Solnedgang", 0, "Solen er gået ned",
                             List.of(), List.of(), dto.symbolCode());
                 }

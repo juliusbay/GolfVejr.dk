@@ -7,6 +7,7 @@ public record HourlyForecastDTO(
         double temperature,
         double windSpeed,
         double windGust,
+        double windDirection,    // degrees, wind_from_direction (0° = wind blowing FROM north)
         double precipitation,    // mm/hour — normalized; -1.0 when no forecast data at all
         boolean isSixHour,       // true when sourced from next_6_hours (used for "ca." labels)
         String status,

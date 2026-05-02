@@ -472,16 +472,20 @@ function renderHourlyRows(day, teaser = false) {
     const night = isAfterSunset(h.time, day.sunsetTime);
     const icon  = weatherEmoji(h.symbolCode, night);
     const hasRealGust = h.windGust != null && Math.abs(h.windGust - h.windSpeed) > 0.1;
-    const windCell = hasRealGust
+    const windSpeeds = hasRealGust
       ? `${h.windSpeed.toFixed(1)} (${h.windGust.toFixed(1)})`
       : h.windSpeed.toFixed(1);
+    const dirArrow = h.windDirection != null
+      ? `<span class="wind-dir-arrow" style="transform:rotate(${h.windDirection}deg)" title="${Math.round(h.windDirection)}°">↓</span>`
+      : '';
+    const windCell = `${windSpeeds}${dirArrow}`;
     const cls = teaser && idx >= 2 ? ' class="extra-hour hidden"' : '';
     return `
       <tr${cls}>
         <td class="weather-icon-cell">${icon}</td>
         <td>${h.time}</td>
         <td>${h.temperature.toFixed(1)}</td>
-        <td>${windCell}</td>
+        <td class="wind-cell">${windCell}</td>
         <td>${h.precipitation < 0 ? '–' : h.precipitation.toFixed(1)}</td>
         <td><span class="score-tip" data-tip="${escapeHtml(hTip)}">${h.score}<span class="score-mini-bar"><span style="width:${h.score}%;background:${scoreColor(statusCls(h.status))}"></span></span></span></td>
         <td>${renderBadge(h.status)}</td>

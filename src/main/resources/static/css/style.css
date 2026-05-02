@@ -698,6 +698,16 @@ tr:hover td { background: var(--surface-2); }
   padding-left: 0.5rem;
   padding-right: 0.25rem;
 }
+.wind-cell { white-space: nowrap; }
+.wind-dir-arrow {
+  display: inline-block;
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-left: 4px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
 .score-tip {
   cursor: help;
   text-decoration: underline dotted;

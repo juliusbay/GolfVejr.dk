@@ -6,6 +6,7 @@ import com.example.golfvejr.Model.OverpassElement;
 import com.example.golfvejr.Model.OverpassResponse;
 import com.example.golfvejr.Repository.GolfClubRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -38,13 +39,17 @@ public class GolfClubImportService {
 
     private final RestTemplate restTemplate;
     private final GolfClubRepository golfClubRepository;
+    private final String userAgent;
 
-    public GolfClubImportService(RestTemplateBuilder builder, GolfClubRepository golfClubRepository) {
-        this.restTemplate = builder
+    public GolfClubImportService(RestTemplateBuilder builder,
+                                 GolfClubRepository golfClubRepository,
+                                 @Value("${api.overpass.user-agent}") String userAgent) {
+        this.restTemplate       = builder
                 .connectTimeout(Duration.ofSeconds(10))
                 .readTimeout(Duration.ofSeconds(30))
                 .build();
         this.golfClubRepository = golfClubRepository;
+        this.userAgent          = userAgent;
     }
 
     public int importGolfClubs() {
@@ -106,7 +111,7 @@ public class GolfClubImportService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.set("User-Agent", "GolfVejrApp/1.0");
+            headers.set("User-Agent", userAgent);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("data", OVERPASS_QUERY);

@@ -3,6 +3,7 @@ package com.example.golfvejr.Service;
 import com.example.golfvejr.Exception.WeatherApiException;
 import com.example.golfvejr.Model.CompleteForecast;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -23,9 +24,12 @@ public class YrApiService {
     private final ConcurrentHashMap<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
     private final RestTemplate restTemplate;
+    private final String userAgent;
 
-    public YrApiService(RestTemplateBuilder builder) {
+    public YrApiService(RestTemplateBuilder builder,
+                        @Value("${api.met-norway.user-agent}") String userAgent) {
         this.restTemplate = builder.build();
+        this.userAgent    = userAgent;
     }
 
     public CompleteForecast getForecast(double lat, double lon) {
@@ -40,7 +44,7 @@ public class YrApiService {
                 "https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=%s&lon=%s", lat, lon);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set("User-Agent", "GolfVejrApp/1.0");
+        headers.set("User-Agent", userAgent);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 

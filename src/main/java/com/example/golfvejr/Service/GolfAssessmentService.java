@@ -55,10 +55,11 @@ public class GolfAssessmentService {
         var zdt     = ts.getTime().withZoneSameInstant(COPENHAGEN_TZ);
         var instant = ts.getData().getInstant().getDetails();
 
-        double temp  = instant.getAirTemperature();
-        double wind  = instant.getWindSpeed();
-        Double gustVal = instant.getWindSpeedOfGust();
-        double gust  = (gustVal != null) ? gustVal : wind;
+        double temp      = instant.getAirTemperature();
+        double wind      = instant.getWindSpeed();
+        Double gustVal   = instant.getWindSpeedOfGust();
+        double gust      = (gustVal != null) ? gustVal : wind;
+        double windDir   = instant.getWindFromDirection();
 
         double precipitation;      // mm/hour — used for scoring and stored in DTO
         boolean isSixHour = false;
@@ -122,7 +123,7 @@ public class GolfAssessmentService {
             time = zdt.format(TIME_FORMATTER);
         }
 
-        return new HourlyForecastDTO(time, temp, wind, gust, precipitation, isSixHour, status, normalizedScore, summary, good, bad, symbolCode);
+        return new HourlyForecastDTO(time, temp, wind, gust, windDir, precipitation, isSixHour, status, normalizedScore, summary, good, bad, symbolCode);
     }
 
     // -- Scoring methods --
