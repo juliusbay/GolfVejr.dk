@@ -546,9 +546,8 @@ window.toggleHours = function(btn) {
 function renderDailySections(forecast) {
   const el = document.getElementById('daily-sections');
   el.innerHTML = forecast.slice(1).map(day => {
-    const tip = buildTooltip(day.goodFactors, day.badFactors);
-    const isIntervalDay = day.hourlyForecasts.length > 0 && day.hourlyForecasts[0].time.includes('–');
-    const showWindow    = day.bestWindow && !isIntervalDay;
+    const tip        = buildTooltip(day.goodFactors, day.badFactors);
+    const showWindow = !!day.bestWindow;
     return `
       <div class="card">
         <div class="card-header">

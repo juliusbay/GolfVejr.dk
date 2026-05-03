@@ -180,7 +180,11 @@ public class ForecastService {
                 prefWindowHourNums.add(h);
             }
         }
-        String bestWindow = findBestWindow(prefWindowHourNums, prefWindowDTOs);
+        boolean isSixHourDay = !daytimeDTOs.isEmpty()
+                && daytimeDTOs.stream().allMatch(HourlyForecastDTO::isSixHour);
+        String bestWindow = isSixHourDay
+                ? findBestSixHourDaytimeWindow(prefWindowHourNums, prefWindowDTOs)
+                : findBestWindow(prefWindowHourNums, prefWindowDTOs);
 
         // Set score=0 for post-sunset hours in the displayed hourly table.
         // The daily average was already calculated above without these hours.
@@ -228,6 +232,24 @@ public class ForecastService {
         int startHour = hours.get(bestStart);
         int endHour   = hours.get(Math.min(bestStart + windowSize - 1, n - 1)) + 1;
         return String.format("%02d:00–%02d:00", startHour, endHour);
+    }
+
+    // Picks the best daytime 6-hour block for long-range days that only have 6-hour data.
+    // MET Norway blocks start at 02/08/14/20 (summer, UTC+2) or 01/07/13/19 (winter, UTC+1).
+    // The pre-dawn block is already excluded upstream (hour >= 6 filter).
+    // Evening/night blocks (e.g. 20:00–02:00) are excluded here via: startHour + 6 > 20.
+    private String findBestSixHourDaytimeWindow(List<Integer> hours, List<HourlyForecastDTO> dtos) {
+        int bestIdx   = -1;
+        double bestScore = -1;
+        for (int i = 0; i < hours.size(); i++) {
+            int startHour = hours.get(i);
+            if (startHour + 6 > 20) continue;          // drop 20:00–02:00 and 19:00–01:00
+            double s = dtos.get(i).score();
+            if (s > bestScore) { bestScore = s; bestIdx = i; }
+        }
+        if (bestIdx < 0 || bestScore < WINDOW_MIN_SCORE) return null;
+        int startH = hours.get(bestIdx);
+        return String.format("%02d:00–%02d:00", startH, startH + 6);
     }
 
     private static boolean isAllDay(String timePref) {
