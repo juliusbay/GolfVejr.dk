@@ -423,10 +423,7 @@ function renderTodayCard(day) {
 
 function renderBestDays(days) {
   const el = document.getElementById('best-days-list');
-  el.innerHTML = days.map((d, i) => {
-    const isIntervalDay = d.hourlyForecasts && d.hourlyForecasts.length > 0 && d.hourlyForecasts[0].time.includes('–');
-    const showWindow    = d.bestWindow && !isIntervalDay;
-    return `
+  el.innerHTML = days.map((d, i) => `
     <div class="best-day-row">
       <div class="rank-circle${i === 0 ? ' top' : ''}">${i + 1}</div>
       <div class="bd-info">
@@ -434,11 +431,11 @@ function renderBestDays(days) {
         <div class="bd-meta">
           ${renderBadge(d.overallStatus)}
           <span class="day-score-text">${d.score}/100</span>
-          ${showWindow ? `<span class="window-tag">&#9201; ${escapeHtml(d.bestWindow)}</span>` : ''}
+          ${d.bestWindow ? `<span class="window-tag">&#9201; ${escapeHtml(d.bestWindow)}</span>` : ''}
         </div>
       </div>
-    </div>`;
-  }).join('');
+    </div>`
+  ).join('');
 }
 
 // ── Weather icon helper ──────────────────────────────────────────────────────
@@ -549,9 +546,8 @@ window.toggleHours = function(btn) {
 function renderDailySections(forecast) {
   const el = document.getElementById('daily-sections');
   el.innerHTML = forecast.slice(1).map(day => {
-    const tip = buildTooltip(day.goodFactors, day.badFactors);
-    const isIntervalDay = day.hourlyForecasts.length > 0 && day.hourlyForecasts[0].time.includes('–');
-    const showWindow    = day.bestWindow && !isIntervalDay;
+    const tip        = buildTooltip(day.goodFactors, day.badFactors);
+    const showWindow = !!day.bestWindow;
     return `
       <div class="card">
         <div class="card-header">
